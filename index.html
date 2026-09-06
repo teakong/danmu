@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI弹幕组件-无后端集成 - WebsitePusher 公开 API 演示</title>
+    <link rel="stylesheet" type="text/css" href="static/css/barrager.css" />
+    <!-- pick-a-color 颜色选择器样式, 依赖 tinycolor(已由 danmu.js 加载) -->
+    <link rel="stylesheet" type="text/css" href="static/pick-a-color/css/pick-a-color-1.2.3.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", Arial, Helvetica, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding-bottom: 40px;
+        }
+        .header {
+            background: #54949B;
+            color: #fff;
+            padding: 48px 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 36px; margin-bottom: 10px; }
+        .header p { font-size: 20px; opacity: .9; }
+        .header .meta { margin-top: 14px; font-size: 16px; opacity: .75; }
+        .container { max-width: 1470px; margin: 30px auto; padding: 0 16px; }
+        .section {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .section h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .section h3 { font-size: 16px; margin: 14px 0 10px; color: #555; }
+        .lead { font-size: 15px; color: #555; margin-bottom: 16px; }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: 8px 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all .15s;
+            margin: 4px 6px 4px 0;
+        }
+        .btn-primary { color: #fff; background-color: #667eea; border-color: #667eea; }
+        .btn-primary:hover { background-color: #5468d4; }
+        .btn-warning { color: #fff; background-color: #f0ad4e; border-color: #f0ad4e; }
+        .btn-warning:hover { background-color: #ec971f; }
+        .btn-danger { color: #fff; background-color: #d9534f; border-color: #d9534f; }
+        .btn-danger:hover { background-color: #c9302c; }
+        .btn-success { color: #fff; background-color: #5cb85c; border-color: #5cb85c; }
+        .btn-success:hover { background-color: #4cae4c; }
+        .btn-lg { padding: 12px 28px; font-size: 16px; }
+        .text-center { text-align: center; }
+        .form-row { margin-bottom: 12px; display: flex; align-items: center; flex-wrap: wrap; }
+        .form-row label { width: 160px; font-size: 14px; color: #666; }
+        .form-row input[type=text],
+        .form-row input[type=number] {
+            flex: 1; min-width: 180px;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-row input[type=checkbox] { margin-right: 4px; }
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        .code-block .k { color: #c678dd; }
+        .code-block .s { color: #98c379; }
+        .code-block .c { color: #5c6370; font-style: italic; }
+        .note {
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 10px 14px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #7d6608;
+            border-radius: 0 4px 4px 0;
+        }
+        .api-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+        .api-table th { background: #f5f7fa; text-align: left; padding: 6px 10px; border: 1px solid #eee; }
+        .api-table td { padding: 6px 10px; border: 1px solid #eee; }
+        .api-table code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; }
+        #status { display: inline-block; margin-left: 8px; font-size: 13px; color: #5cb85c; }
+
+        /* ===== pick-a-color 颜色选择器样式(flex 布局, 三段自动等高) ===== */
+        .pick-a-color-markup {
+            display: inline-flex; align-items: stretch; vertical-align: middle;
+            height: 30px;
+        }
+        /* # 前缀框: 固定高度 30px 与页面 .form-row input 等高, !important 覆盖 pick-a-color 响应式媒体查询 */
+        .pick-a-color-markup .input-group-addon {
+            display: flex; align-items: center; justify-content: center;
+            height: 100% !important; padding: 0 8px; font-size: 14px; line-height: 1; color: #555;
+            background-color: #eee; border: 1px solid #ccc; border-right: 0;
+            border-radius: 4px 0 0 4px; box-sizing: border-box;
+        }
+        /* hex 输入框: 固定宽度 60px + 高度 100% (!important 覆盖 .form-row input 的 min-width:180px) */
+        .pick-a-color-markup .pick-a-color {
+            width: 80px !important; min-width: 80px !important; max-width: 100px !important;
+            height: 100% !important; padding: 0 8px; font-size: 14px; line-height: 1;
+            color: #555; background-color: #fff; border: 1px solid #ccc; border-left: 0; border-right: 0;
+            box-shadow: none; outline: none; box-sizing: border-box;
+        }
+        /* 下拉按钮容器, 作为 color-menu 的定位上下文 */
+        .pick-a-color-markup .input-group-btn {
+            position: relative; display: flex; align-items: stretch;
+            height: 100%;
+        }
+        .pick-a-color-markup .btn,
+        .pick-a-color-markup .input-group-btn .color-dropdown {
+            display: flex; align-items: center; gap: 4px; margin: 0;
+            height: 100% !important; padding: 0 8px; font-size: 14px; line-height: 1; cursor: pointer;
+            border: 1px solid #ccc; border-left: 0; border-radius: 0 4px 4px 0;
+            background-color: #fff; box-sizing: border-box;
+        }
+        .pick-a-color-markup .btn-default { color: #333; }
+        .pick-a-color-markup .color-preview {
+            display: inline-block; width: 16px; height: 16px;
+            border: 1px solid rgba(0,0,0,0.2); border-radius: 2px;
+            vertical-align: middle; margin: 0;
+        }
+        .pick-a-color-markup .color-menu.dropdown-menu {
+            position: absolute; top: 100%; left: 0; z-index: 1000;
+            display: none; min-width: 160px; padding: 5px 0;
+            margin: 2px 0 0; font-size: 14px; text-align: left; list-style: none;
+            background-color: #fff; background-clip: padding-box;
+            border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 6px 12px rgba(0,0,0,.175);
+        }
+        .pick-a-color-markup .caret {
+            display: inline-block; width: 0; height: 0; vertical-align: middle;
+            border-top: 4px solid #333;
+            border-right: 4px solid transparent; border-left: 4px solid transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AI弹幕组件-无后端集成</h1>
+        <p>WebsitePusher 公开 API 演示</p>
+        <div class="meta">一行代码，集成推送和弹幕API，适用于任何网站。可以自动识别当前浏览的内容发送AI弹幕，还可以自由发布公告、历史评论推送到弹幕，包括不限于个人博客、游戏直播等场景，无需后端开箱可用。</div>
+    </div>
+
+    <div class="container">
+        <!-- 快速体验 -->
+        <div class="section">
+            <h2>快速体验 <span id="status"></span></h2>
+            <p class="lead">注意：当前 <code>通道码</code> 集成在前端页面，所有人可见，$.getJSON()适用于匿名推送的场景，例如公开留言板。如果只允许<code>注册用户</code>发送弹幕或者需要保存<code>点赞</code>数据，需参考<a href="index.html">server.html</a>进行<code>过滤</code>。</p>
+            <div class="text-center">
+                <button class="btn btn-primary btn-lg" onclick="sendExample()">发送公开弹幕 ($.getJSON())</button>
+            </div>
+            <div class="code-block"><span class="c">&lt;!-- 一行代码进行弹幕推送 --&gt;</span>
+$.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a0269900809946903?head=这是第一条弹幕&avatar=https://www.phprm.com/push/h5/static/avatar/danMu.png");
+</div>
+            <div class="note">
+                $.getJSON() 调用<code>trigger</code>接口将请求后端向云端写入一条弹幕记录，只有<code>head</code>参数必传，<code>avatar</code> 可不传. 缺省自动生成。
+            </div>
+        </div>
+
+        <!-- 自定义弹幕 -->
+        <div class="section">
+            <h2>自定义弹幕样式</h2>
+            <p class="lead">弹幕文字必选，头像链接、跳转链接可为空，其余可选项有默认值（继承自 danMuSetting）。</p>
+            <div class="form-row">
+                <label>文字 *</label>
+                <input type="text" name="info" placeholder="弹幕文字信息" />
+            </div>
+            <div class="form-row">
+                <label>头像链接</label>
+                <input type="text" name="avatar" placeholder="https://www.phprm.com/push/h5/static/avatar/danMu.png" />
+            </div>
+            <div class="form-row">
+                <label>跳转链接</label>
+                <input type="text" name="href" placeholder="可选, 不填将跳转到详情页面" />
+            </div>
+            <div class="form-row">
+                <label>飞行秒数</label>
+                <input id="custom-speed" type="number" name="speed" value="18" min="1" style="max-width:100px;" />
+                <label style="width:auto;margin-left:20px;">字号：</label>
+                <input id="custom-size" type="number" name="size" value="20" min="8" max="33" style="max-width:80px;" />
+            </div>
+            <div class="form-row">
+                <label>颜色</label>
+                <input id="custom-color" type="text" name="color" value="fff" class="pick-a-color" />
+                <label style="width:auto;margin-left:20px;">背景不透明度(0-100)：</label>
+                <input id="custom-opacity" type="number" name="opacity" value="50" min="0" max="100" style="max-width:80px;" />
+            </div>
+            <div class="form-row">
+                <label>关闭按钮(优先)</label>
+                <input id="custom-close" type="checkbox" name="close" /> 显示
+            </div>
+            <div class="form-row">
+                <label>点赞按钮</label>
+                <input id="custom-like" type="checkbox" name="like" checked /> 显示
+            </div>
+            <div style="margin-top:16px;">
+                <button class="btn btn-primary" onclick="sendCustom()">发送 (trigger)</button>
+            </div>
+        </div>
+
+        <!-- 外观配置实时生效 -->
+        <div class="section">
+            <h2>外观配置（updateDanMu仅对新弹幕生效）</h2>
+            <p class="lead">修改下方参数后点「应用」，<code>updateDanMu</code> 会深合并到 danMuSetting 并立即对后续弹幕生效。</p>
+            <div class="form-row">
+                <label>背景不透明度(0-100)：</label>
+                <input type="number" id="cfg-opacity" value="50" min="0" max="100" style="max-width:100px;" />
+                <label style="width:auto;margin-left:20px;">字号：</label>
+                <input type="number" id="cfg-size" value="20" min="8" max="33" style="max-width:80px;" />
+                <label style="width:auto;margin-left:20px;">飞行秒数：</label>
+                <input type="number" id="cfg-speed" value="18" min="1" style="max-width:80px;" />
+            </div>
+            <div class="form-row">
+                <label>文字颜色：</label>
+                <input type="text" id="cfg-color" value="fff" class="pick-a-color" />
+                <label style="width:auto;margin-left:20px;">AI弹幕轮询秒：</label>
+                <input type="number" id="cfg-aiDanMu" value="0" min="10" style="max-width:80px;" title="0=关闭" />
+            </div>
+            <div style="margin-top:16px;">
+                <button class="btn btn-primary" onclick="applyConfig()">应用 (updateDanMu)</button>
+            </div>
+        </div>
+
+        <!-- 运行时控制 -->
+        <div class="section">
+            <h2>运行时控制 (内存操作)</h2>
+            <p class="lead">弹幕运行期间可动态控制可见性、滚动、清屏与生命周期。</p>
+            <h3>可见性</h3>
+            <button class="btn btn-warning" onclick="callApi('hideDanMu')">隐藏弹幕 (hideDanMu)</button>
+            <button class="btn btn-success" onclick="callApi('showDanMu')">显示弹幕 (showDanMu)</button>
+            <p style="font-size:13px;color:#888;margin-top:6px;">hideDanMu 用 visibility:hidden，动画继续不丢消息。</p>
+
+            <h3>滚动状态</h3>
+            <button class="btn btn-warning" onclick="callApi('pauseDanMu')">暂停 (pauseDanMu)</button>
+            <button class="btn btn-success" onclick="callApi('resumeDanMu')">恢复 (resumeDanMu)</button>
+            <p style="font-size:13px;color:#888;margin-top:6px;">pauseDanMu 冻结滚动，新消息暂存队列；resumeDanMu 重启滚动并刷新暂存队列。</p>
+
+            <h3>清屏与生命周期</h3>
+            <button class="btn btn-danger" onclick="callApi('clearDanMu')">清屏 (clearDanMu)</button>
+            <button class="btn btn-danger" onclick="callApi('stopDanMu')">停止 (stopDanMu)</button>
+            <button class="btn btn-primary" onclick="callApi('startDanMu')">启动 (startDanMu)</button>
+            <p style="font-size:13px;color:#888;margin-top:6px;">clearDanMu 只清当前弹幕不影响连接；stopDanMu 断开 Socket.IO+停 AI 轮询+清屏；startDanMu 重连+重启轮询。</p>
+        </div>
+
+        <!-- 一行代码集成 -->
+        <div class="section">
+            <h2>一行代码集成（无后端）</h2>
+            <p class="lead">在你的网站任意页面引入下面这一行 <code>&lt;script&gt;</code>，<code>danmu.js</code> 会自动加载依赖并调用 <code>WebsitePusher.init()</code>弹幕插件：</p>
+            <div class="code-block"><span class="c">&lt;!-- 一行代码集成 AiDanMu 弹幕推送 --&gt;</span>
+&lt;script src=<span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=你的应用名用于数据统计&amp;channelCode=你的通道码&amp;danMu=1"</span>&gt;&lt;/script&gt;</div>
+            <h3>WebsitePusher settings 详解</h3>
+            <table class="api-table">
+                <tr><th>属性</th><th>说明</th></tr>
+                <tr><td><code>siteName</code></td><td>站点名称</td></tr>
+                <tr><td><code>apiKey</code></td><td>弹幕云服务API Key, 固定值, 不可修改</td></tr>
+                <tr><td><code>cssSite</code></td><td>CSS 资源根路径, 可定制为业务方cdn地址</td></tr>
+                <tr><td><code>jsSite</code></td><td>JS 资源根路径, 可定制为业务方cdn地址</td></tr>
+                <tr><td><code>pcUrl</code></td><td>PC 端页面地址, 可定制为业务方cdn地址和样式</td></tr>
+                <tr><td><code>pushUrl</code></td><td>弹幕云服务官网, 固定值, 不可修改</td></tr>
+                <tr><td><code>apiUrl</code></td><td>弹幕云服务API接口, 固定值, 不可修改</td></tr>
+                <tr><td><code>authUrl</code></td><td>弹幕云服务Oauth接口, 固定值, 不可修改</td></tr>
+                <tr><td><code>wsUrl</code></td><td>弹幕云服务Socket接口, 固定值, 不可修改</td></tr>
+                <tr><td><code>channelMemberUrl</code></td><td>弹幕云服务API接口, 固定值, 不可修改</td></tr>
+                <tr><td><code>appName</code></td><td>自定义应用名称(用于数据统计)</td></tr>
+                <tr><td><code>channelCode</code></td><td>指定通道码, 可到弹幕云服务官网注册后获取后传参, 认证域名后自动创建弹幕通道码可不传</td></tr>
+                <tr><td><code>uid</code></td><td>弹幕云成员ID, 长整形数字, 仅用于标识</td></tr>
+                <tr><td><code>name</code></td><td>弹幕云成员昵称</td></tr>
+                <tr><td><code>createTime</code></td><td>弹幕云成员加入时间</td></tr>
+                <tr><td><code>token</code></td><td>弹幕云成员弹幕服务令牌</td></tr>
+                <tr><td><code>avatar</code></td><td>弹幕云成员加入时分配的头像, 默认为浏览器头像</td></tr>
+                <tr><td><code>device</code></td><td>访问成员设备码, 不同浏览器、不同版本设备码不同</td></tr>
+                <tr><td><code>clientVersion</code></td><td>访问成员客户端版本</td></tr>
+                <tr><td><code>screenResolution</code></td><td>访问成员屏幕分辨率</td></tr>
+                <tr><td><code>userPlatformType</code></td><td>访问成员用户平台类型</td></tr>
+                <tr><td><code>userPlatformVersion</code></td><td>访问成员用户平台版本</td></tr>
+                <tr><td><code>hideDialog</code></td><td>是否隐藏对话框(0=显示, 1=隐藏), <font>支持danmu.js?hideDialog=1关闭对话框模式</font></td></tr>
+                <tr><td><code>hidePanel</code></td><td>是否隐藏推送面板(0=显示, 1=隐藏), <font>支持danmu.js?hidePanel=1关闭弹幕配置面板</font></td></tr>
+                <tr><td><code>danMu</code></td><td>是否开启弹幕(0=关闭, 1=开启), <font>支持danmu.js?danMu=1开启弹幕</font></td></tr>
+                <tr><td><code>closeText</code></td><td>自定义关闭/举报按钮文字, 仅当danMuSetting.close=1时生效</td></tr>
+                <tr><td><code>danMuSetting</code></td><td>弹幕外观配置(嵌套对象, 子属性见下方)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.opacity</code></td><td>背景不透明度(0~100, 100=不透明)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.size</code></td><td>弹幕字号(8~33)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.speed</code></td><td>滚动速度(秒)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.close</code></td><td>是否显示关闭按钮(0=否, 1=是, 优先于 like)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.like</code></td><td>是否显示点赞按钮(0=否, 1=是), 仅当danMuSetting.close=0时生效</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.bottom</code></td><td>距屏幕底部距离(px, bottomradio=1 时生效)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.bottomradio</code></td><td>是否按 bottom 定位(0=随机位置, 1=固定)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.aiDanMu</code></td><td>AI 弹幕轮询间隔(秒, 0=关闭), <font>支持danmu.js?aiDanMu=30开启AI弹幕每30秒轮询</font></td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.aiDanMuUrl</code></td><td>AI 弹幕自定义接口地址</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.selector</code></td><td>弹幕挂载 DOM 选择器(默认 body)</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.color</code></td><td>弹幕文字颜色</td></tr>
+                <tr><td><code>&nbsp;&nbsp;danMuSetting.hideIcon</code></td><td>是否隐藏右下角浮窗图标(0=显示, 1=隐藏), <font>支持danmu.js?hideIcon=1关闭弹幕右下角图标</font></td></tr>
+                <tr><td><code>messageLength</code></td><td>messageIdList 容量上限, 如果访问成员大于20000人可尝试着增加此值</td></tr>
+            </table>
+
+            <h3>WebsitePusher 公开 API 速查</h3>
+            <table class="api-table">
+                <tr><th>方法</th><th>说明</th></tr>
+                <tr><td><code>init(options)</code></td><td>接入入口，options 为 settings 覆盖项，嵌套对象(如 danMuSetting)按字段深合并</td></tr>
+                <tr><td><code>hideDanMu()</code></td><td>隐藏弹幕(visibility:hidden, 动画继续不丢消息)</td></tr>
+                <tr><td><code>showDanMu()</code></td><td>显示弹幕(移除 hideDanMu 的隐藏样式)</td></tr>
+                <tr><td><code>pauseDanMu()</code></td><td>暂停弹幕(冻结滚动, 新消息暂存队列)</td></tr>
+                <tr><td><code>resumeDanMu()</code></td><td>恢复弹幕(重启滚动, 刷新暂存队列)</td></tr>
+                <tr><td><code>clearDanMu()</code></td><td>清屏(移除所有弹幕元素+清空暂停队列, 不影响连接)</td></tr>
+                <tr><td><code>updateDanMu(options)</code></td><td>更新弹幕配置并立即生效(外观/AI轮询), options 为 danMuSetting 字段子集</td></tr>
+                <tr><td><code>setDanMuArea(ratio)</code></td><td>设置显示区域比例(0.1~1, 如 0.5=上半屏)</td></tr>
+                <tr><td><code>stopDanMu()</code></td><td>停止弹幕：断开 Socket.IO、停 AI 轮询、清屏，保留 token/doc 供恢复</td></tr>
+                <tr><td><code>startDanMu()</code></td><td>启动弹幕：重连 Socket.IO、重启 AI 轮询(依赖 stopDanMu 前保存的上下文)</td></tr>
+                <tr><td><code>danMuSendOpen(settings)</code></td><td>右下角danMuIcon回调钩子：右下角弹幕图标首次点击时触发(开启弹幕发送)，需在 init 时传入</td></tr>
+                <tr><td><code>danMuSendClose(settings)</code></td><td>右下角danMuIcon回调钩子：右下角弹幕图标再次点击时触发(关闭弹幕发送)，需在 init 时传入</td></tr>
+                <tr><td><code>sendDanMu(item)</code></td><td>主动发送弹幕(仅调试样式使用, 当前屏幕滚动, 不请求业务方后端)，如需存储后再推送, 请在sendCallback回调中异步请求业务方后端, 人工审核通过再由后端进行推送</td></tr>
+                <tr><td><code>destroy()</code></td><td>销毁所有资源(DOM/事件/Socket.IO/定时器/缓存), 销毁后可重新调用 init() 初始化</td></tr>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- 一行代码引入所有资源文件 -->
+    <script type="text/javascript">
+        (function () {
+            var dm = document.createElement("script");
+            dm.src = "static/js/danmu.js";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(dm, s);
+        })();
+    </script>
+    <script type="text/javascript">
+    var settings = {
+        appName: "AI弹幕",	 	// 必填
+        danMu: 1,				// 弹幕传1
+        channelCode: "4d05f4abdb0a0c2a0269900809946903",
+        hidePanel: 1,			// 是否隐藏默认面板
+        hideDialog: 1,			// 是否隐藏默认对话窗口
+        danMuSetting: {
+            hideIcon: 0,        // 0=显示右下角浮窗图标
+            opacity: 50,        // 背景不透明度 0~100, 100=全不透明
+            size: 20,           // 字号 8~33
+            speed: 18,          // 飞行秒数
+            like: 1,            // 1=显示点赞按钮
+            close: 0,           // 0=不显示关闭按钮(优先于 like)
+            color: "#fff"       // 文字颜色
+        },
+        danMuInitCallback: function (settings) {
+            // 从 localStorage 读取弹幕开关状态: "0"=关闭(不创建socket), 其他=开启(默认开启)
+            var enabled = localStorage.getItem("danmu_enabled");
+            if (enabled === "0") {
+                return false;
+            }
+            return true;
+        },
+        sendCallback: function (item, s) {
+            console && console.log("sendCallback", item);
+            // sendDanMu 仅本地滚动, 这里异步请求后端 trigger 接口不审核直接推送给其他人
+            callApiSendDanMu({
+                channelCode: s.channelCode,
+                head: item.info,
+                avatar: item.img
+            });
+        },
+        danMuSendOpen: function (settings) {
+            console && console.log("danMuSendOpen settings", settings);
+            // 写入 localStorage 标记弹幕开启
+            localStorage.setItem("danmu_enabled", "1");
+            // 避免重复创建
+            if (document.getElementById("dm-send-box")) return;
+            var box = document.createElement("div");
+            box.id = "dm-send-box";
+            box.style.cssText = [
+                "position:fixed",
+                "left:50%",
+                "transform:translateX(-50%)",
+                "bottom:20px",
+                "z-index:2147483647",
+                "width:500px",
+                "padding:12px 14px",
+                "background:rgba(30,30,30,.5)",
+                "border-radius:10px",
+                "box-shadow:0 4px 20px rgba(0,0,0,.4)",
+                "display:flex",
+                "gap:8px",
+                "align-items:center"
+            ].join(";");
+            var input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = "来发弹幕~";
+            input.style.cssText = [
+                "flex:1",
+                "height:36px",
+                "line-height:40px",
+                "padding:8px 10px",
+                "border:1px solid rgba(255,255,255,.25)",
+                "border-radius:6px",
+                "background:rgb(111 111 111)",
+                "color:#fff",
+                "font-size:16px",
+                "outline:none"
+            ].join(";");
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    sendBtn.click();
+                }
+            });
+            var sendBtn = document.createElement("button");
+            sendBtn.textContent = "发送";
+            sendBtn.style.cssText = [
+                "padding:8px 18px",
+                "border:none",
+                "border-radius:6px",
+                "background:#4b8afe",
+                "color:#fff",
+                "font-size:13px",
+                "cursor:pointer",
+                "white-space:nowrap"
+            ].join(";");
+            sendBtn.addEventListener("click", function () {
+                var text = input.value.trim();
+                if (!text) return;
+                if (typeof WebsitePusher !== "undefined" && typeof WebsitePusher.sendDanMu === "function") {
+                    WebsitePusher.sendDanMu({ info: text, img: settings.avatar});
+                }
+                input.value = "";
+                input.focus();
+            });
+            var closeBtn = document.createElement("span");
+            closeBtn.textContent = "×";
+            closeBtn.style.cssText = [
+                "position:absolute",
+                "top:-8px",
+                "right:-8px",
+                "width:20px",
+                "height:20px",
+                "line-height:18px",
+                "text-align:center",
+                "background:#444",
+                "color:#fff",
+                "border-radius:50%",
+                "font-size:14px",
+                "cursor:pointer",
+                "user-select:none"
+            ].join(";");
+            closeBtn.addEventListener("click", function () {
+                box.remove();
+                settings.danMuSendOpened = false;
+            });
+            box.appendChild(input);
+            box.appendChild(sendBtn);
+            box.appendChild(closeBtn);
+            document.body.appendChild(box);
+            input.focus();
+        },
+        danMuSendClose: function (s) {
+            // 写入 localStorage 标记弹幕关闭
+            localStorage.setItem("danmu_enabled", "0");
+            var box = document.getElementById("dm-send-box");
+            if (box) {
+                box.remove();
+            }
+        }
+    };
+
+    /* ============================================================
+     *  初始化入口
+     *  依赖(jquery/tinycolor/pusher.js 等)由 head 里的 danmu.js 异步加载,
+     *  window.onload 触发时上述依赖均已就绪:
+     *    1) 调用 WebsitePusher.init(settings) 初始化弹幕
+     *    2) 加载 pick-a-color 颜色选择器(依赖 jquery+tinycolor)并初始化
+     * ============================================================ */
+    window.onload = function () {
+        // 指定settings初始化弹幕
+        WebsitePusher.init(settings);
+        document.getElementById("status").textContent = "✓ WebsitePusher 已初始化";
+
+        // 仅页面演示使用动态加载 pick-a-color.js, 加载完成后初始化所有 .pick-a-color 输入框
+        WebsitePusher.parallelLoadScripts(["static/pick-a-color/js/pick-a-color-1.2.3.min.js"], function () {
+            if (typeof jQuery.fn.pickAColor === "function") {
+                jQuery(".pick-a-color").pickAColor();
+            }
+        });
+    };
+
+    /* ============================================================
+     *  运行时控制: 通用 API 调用封装
+     *  按 method 名调用 WebsitePusher 上对应方法, 未就绪时提示
+     * ============================================================ */
+    function callApi(method) {
+        if (typeof WebsitePusher === "undefined" || typeof WebsitePusher[method] !== "function") {
+            alert("WebsitePusher 未就绪，无法调用 " + method);
+            return;
+        }
+        try {
+            WebsitePusher[method]();
+        } catch (e) {
+            console.error("WebsitePusher." + method + " 调用失败:", e);
+        }
+    }
+
+    /* ============================================================
+     *  弹幕发送
+     * ============================================================ */
+
+    // 快速体验: 直接调用后端 trigger 接口写入一条弹幕
+    function sendExample() {
+        $.getJSON("https://www.phprm.com/services/push/trigger/" + settings.channelCode + "?head=" + encodeURIComponent("这是第一条弹幕") + "&avatar=" + encodeURIComponent("https://www.phprm.com/push/h5/static/avatar/danMu.png"));
+    }
+
+    // 自定义弹幕: 先把表单里的外观参数通过 updateDanMu 写入配置, 再调用 trigger 发送
+    function sendCustom() {
+        var info = val("info") || "请填写弹幕文字";
+        var avatar = val("avatar") || "https://www.phprm.com/push/h5/static/avatar/danMu.png";
+
+        // 把当前表单的外观配置写入 danMuSetting, 让本次及后续弹幕生效
+        // pick-a-color 存储的颜色不带 # 前缀, 用 tinycolor 统一转成 #rrggbb 格式
+        WebsitePusher.updateDanMu({
+            size: parseInt(document.getElementById("custom-size").value, 10) || 20,
+            opacity: parseInt(document.getElementById("custom-opacity").value, 10) || 50,
+            speed: parseInt(document.getElementById("custom-speed").value, 10) || 18,
+            color: "#" + tinycolor(document.getElementById("custom-color").value).toHex(),
+            // checkbox 必须用 .checked 取值, .value 永远是 "on"
+            close: document.getElementById("custom-close").checked ? 1 : 0,
+            like: document.getElementById("custom-like").checked ? 1 : 0
+        });
+
+        // 调用后端 trigger 接口发送弹幕
+        callApiSendDanMu({
+            channelCode: settings.channelCode,
+            head: info,
+            avatar: avatar
+        });
+    }
+
+    // 调用后端 trigger 接口写入弹幕(由云端分发到所有订阅该通道的客户端)
+    function callApiSendDanMu(params) {
+        if (typeof WebsitePusher === "undefined") {
+            alert("WebsitePusher 未就绪，无法发送弹幕");
+            return;
+        }
+        $.getJSON("https://www.phprm.com/services/push/trigger/" + params.channelCode + "?head=" + encodeURIComponent(params.head) + "&avatar=" + encodeURIComponent(params.avatar));
+    }
+
+    /* ============================================================
+     *  外观配置: updateDanMu 对后续弹幕立即生效
+     * ============================================================ */
+    function applyConfig() {
+        if (typeof WebsitePusher === "undefined" || typeof WebsitePusher.updateDanMu !== "function") {
+            alert("WebsitePusher 未就绪");
+            return;
+        }
+        // 表单 input 只有 id 没有 name, 统一用 getElementById 取实际输入值
+        // pick-a-color 存储的颜色不带 # 前缀, 用 tinycolor 统一转成 #rrggbb 格式
+        var opts = {
+            opacity: parseInt(document.getElementById("cfg-opacity").value, 10) || 50,
+            size: parseInt(document.getElementById("cfg-size").value, 10) || 20,
+            speed: parseInt(document.getElementById("cfg-speed").value, 10) || 18,
+            color: "#" + tinycolor(document.getElementById("cfg-color").value).toHex(),
+            aiDanMu: parseInt(document.getElementById("cfg-aiDanMu").value, 10) || 0
+        };
+        WebsitePusher.updateDanMu(opts);
+        // 回显当前生效配置, 便于验证 updateDanMu 是否真正写入
+        console.log("[updateDanMu] 应用:", opts, "| 当前 danMuSetting:", WebsitePusher.getDanMuConfig());
+    }
+
+    /* ============================================================
+     *  表单工具
+     * ============================================================ */
+    function val(name) {
+        return document.querySelector('input[name="' + name + '"]').value.trim();
+    }
+    </script>
+    <script type="text/javascript" src="static/js/tinycolor-0.9.15.min.js"></script>
+    <script type="text/javascript" src="static/js/danmu-float.js"></script>
+</body>
+</html>

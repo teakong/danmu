@@ -1,0 +1,261 @@
+@charset "utf-8";
+/* CSS Document */
+*:focus {outline: none;}
+input::-webkit-input-placeholder{
+color:#b2b2b2;
+}
+input::-moz-placeholder{
+color:#b2b2b2;
+}
+input::-ms-input-placeholder{
+color:#b2b2b2;
+}
+.main{
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	text-align:center;
+	padding:0px;
+	margin:0px;width:458px; height:470px; border:1px solid #d8d8d8; border-top:none; text-align:left; background-color:#f8f8f8;
+}
+.main .logo-text{color:#555}
+.main img {border:0px;}
+.main ul{ list-style-type:none; padding:0px; margin:0px;}
+.main li{ padding:0px; margin:0px;}
+
+.main .lf{
+    float:left;
+    font-size: 16px;
+    padding-left: 2px
+}
+
+.main .rt{ float:right;}
+.main .topbjcl{
+	background-image: url(images/1.gif);
+	background-repeat: repeat-x; height:33px;
+}
+
+.main A:link {
+	COLOR: #3d6ba7; TEXT-DECORATION: none
+}
+.main A:visited {
+	COLOR: #3d6ba7; TEXT-DECORATION: none
+}
+.main A:hover {
+	COLOR: #3d6ba7; TEXT-DECORATION: underline
+}
+.main p
+{
+padding:4px 0px;
+
+}
+
+/* 新加 */
+.main .channel-input{clear:both; padding-top:20px; width:381px; margin:0px auto;}
+.main .danmu-config{padding-top:20px;}
+.main .todo-container{clear:both; padding-top:20px; width: 410px; margin:0px auto;display: block}
+.main #logoutButton{display: inline-block}
+.main .lan360{COLOR: #2d609f;}
+.main .lan360 A:link {
+	COLOR: #2d609f; TEXT-DECORATION: none
+}
+.main .lan360 A:visited {
+	COLOR: #2d609f; TEXT-DECORATION: none
+}
+.main .lan360 A:hover {
+	COLOR: #2d609f; TEXT-DECORATION: underline
+}
+.main .channel-group {
+    margin-bottom: 10px;
+}
+.main .form-group{
+    height:44px;
+    clear:both;
+}
+.main .footer {
+    width: 300px;
+    margin: 0 auto;
+}
+.main .nav-button {
+    font-size: 14px;
+    padding: 0 8px;
+}
+
+.main .serchpt{text-align:left;background-color: #ffffff;font-size:14px;line-height:22px; border:1px solid #eeeeee; padding:8px 5px 8px 10px;width:180px; }
+.main .channelCode{width:250px }
+.pusher-button {padding: 10px 0px;margin-left:18px}
+.btn {
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    border: 1px solid transparent;
+    padding: .375rem .75rem;
+    font-size: .75rem;
+    line-height: 1.8;
+    border-radius: .25rem;
+    transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    cursor: pointer;
+}
+.btn-primary {
+    color: #fff;
+    background-color: #1296db;
+    border-color: #007bff;
+    padding: 4px 10px 3px 10px;
+    margin-bottom: 4px
+}
+.btn-primary:hover{background-color: #007bff}
+.channel-input .add-button, .form-button .load-button{
+    padding: 4px;
+    cursor:pointer;
+    font-size: 14px;
+    line-height: 1.8;
+    padding: 5px 16px 3px 16px;
+    background: #efefef;
+    border: 1px #efefef solid;
+}
+.form-button .load-button {
+    margin-top: 10px;
+}
+.channel-input .add-button:hover, .form-button .load-button:hover {
+    border-color: #007bff;
+    color: #007bff
+}
+.msg{
+    padding-top:8px;
+    height:30px;
+    clear:both;
+    color:#ff0000;
+    font-size: 14px;
+    padding-left: 2px
+}
+.no-more {
+    color: #555555;
+    display: none;
+    padding: 12px 0 0 6px;
+}
+.table-body {
+    max-height: 240px;
+    overflow-x:hidden;
+    overflow-y:auto;
+}
+
+.table-body .table-row {
+    padding: 5px 0;
+    clear:both;
+}
+.table-body .table-row .todo-name {
+    padding: 4px 6px;
+    float: left;
+    font-size: 14px;
+    display: inline-block;
+    color: #007bff;
+    width: 135px;
+}
+.table-body .table-row .todo-member {
+    padding: 4px 20px 4px 0;
+    float: right;
+    font-size: 13px;
+    display: inline-block;
+    overflow: hidden;
+    line-height: 24px;
+    width: 120px;
+    text-align: right;
+}
+.table-body .table-row .todo-button{
+    width: 100px;
+    float: right;
+}
+.table-body .table-row .todo-button .todo-group {
+    font-size: 12px;
+    display: inline-block;
+    width: 96px;
+    padding: 4px 10px 3px 10px;
+}
+
+/* 新加 */
+.main .login{clear:both; padding-top:20px; width:261px; margin:0px auto;}
+
+.main .username, .main .login-pwd, .main .login-verify{text-align:left;background-color: #ffffff;font-size:14px;line-height:24px; border:1px solid #eeeeee; padding:8px 5px 8px 10px;width:245px;}
+.main .login-verify{width:100px;}
+.main .login-captcha {display: inline-block;vertical-align: bottom;background: #fff;margin-left: 9px;}
+.main .login-captcha span {padding-right: 15px; border-radius: .7rem}
+.main .login-captcha span img {vertical-align: bottom; padding-left: 20px;}
+.main .login-button {height: 50px; margin-top: 20px}
+
+.main-config {width: 420px; margin: 0 auto}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-horizontal .form-group:before {
+    display: table;
+    content: " ";
+}
+.col-sm-1 {
+    width: 8.33333333%;
+    float: left;
+}
+.col-sm-2 {
+    width: 16.66666667%;
+    float: left;
+    padding-right: 10px;
+    padding-left: 10px;
+}
+.col-sm-3 {
+    width: 25%;
+    float: left;
+}
+.col-sm-4 {
+    width: 33.33333333%;
+    float: left;
+}
+.form-control {
+    display: block;
+    width: 100%;
+    height: 22px;
+    padding: 6px 12px;
+    font-size: 14px;
+    line-height: 1.42857143;
+    color: #555;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+    -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
+    -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+    transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+.form-horizontal .control-label {
+    padding-top: 7px;
+    margin-bottom: 0;
+    text-align: right;
+}
+.form-horizontal .radio-inline {
+    padding-top: 7px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+.radio-inline {
+    position: relative;
+    display: inline-block;
+    padding-left: 23px;
+    margin-bottom: 0;
+    font-weight: 400;
+    vertical-align: middle;
+    cursor: pointer;
+}
+.radio-inline input[type=radio] {
+    position: absolute;
+    margin-top: 4px\9;
+    margin-left: -20px;
+}
+.radio-inline+.radio-inline {
+    margin-top: 0;
+    margin-left: 10px;
+}

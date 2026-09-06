@@ -1,0 +1,31 @@
+.barrage{position: fixed;bottom:70px;right:-500px;display: inline-block;min-width: 40px;width: 800px;z-index: 99999}
+.barrage_box{background-color: rgba(0,0,0,.5);padding-right: 8px; height: 40px;display: inline-block;border-radius: 25px;transition: background-color .25s;white-space: nowrap;}
+.barrage_box .portrait{ display: inline-block;margin-top: 4px; margin-left: 4px; width: 32px;height: 32px;border-radius: 50%;overflow: hidden;}
+.barrage_box .portrait img{width: 100%;height: 100%;}
+.barrage_box div.p a{ margin-right: 2px; font-size: 14px;color: #fff;line-height: 40px;margin-left: 18px; }
+/* 长文本钳制: 文字最宽600px, 超出省略号截断, 防止把 close/like float 挤换行 */
+.barrage_box div.p{max-width: 600px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;}
+.barrage_box div.p a:hover{text-decoration: underline;}
+/* ===== 关闭按钮(25x25 圆形): SVG图标, fill=rgba(255,255,255,0.7) 浅灰白, 与黑底融合不刺眼 ===== */
+.barrage_box .close{visibility: hidden;opacity: 0;text-align: center;width:25px;height: 25px;margin-left: 20px;border-radius: 50%;background:rgba(255,255,255,.1) center/18px 18px no-repeat;margin-top:8px;background-image: url(images/close.svg);cursor:pointer;}
+.barrage_box:hover .close{visibility:visible;opacity: 1;}
+.barrage_box .close a{display:block;}
+.barrage_box .close .icon-close{font-size: 14px;color:rgba(255,255,255,.5);display: inline-block;margin-top: 5px; }
+/* ===== 点赞❤图标(25x25 圆形) =====
+   触发规则: 只有❤/数字自身hover才变红, hover弹幕文字不变色 */
+.barrage_box .like{visibility:hidden;opacity:0;text-align:center;width:25px;height:25px;margin-left:20px;border-radius:50%;background:rgba(255,255,255,.1) center/18px 18px no-repeat;margin-top:8px;background-image:url(images/heart_default.svg);cursor:pointer;}
+/* 1) num=0 无has-num: 常态透明占位(visibility不能为hidden,否则区域无法hover), 自身hover才显示红色空心❤ */
+.barrage_box .like:not(.has-num){visibility:visible;opacity:0;}
+.barrage_box .like:not(.has-num):hover{opacity:1;background-image:url(images/heart_hover.svg);}
+/* 2) has-num: 常态白色空心❤+白色数字, 仅自身hover变红色空心❤/红色数字 */
+.barrage_box .like.has-num{visibility:visible;opacity:1;}
+.barrage_box .like.has-num:hover{background-image:url(images/heart_hover.svg);}
+/* 3) liked: 红色实心❤(置于最后保证覆盖hover态, 点赞后hover保持实心不变回空心) */
+.barrage_box .like.liked{background-image:url(images/heart_liked.svg);}
+.barrage_box .like.liked:hover{background-image:url(images/heart_liked.svg);}
+/* ===== 点赞数字(与❤同级浮动) ===== */
+.barrage_box .num{float:left;display:inline-block;margin-left:4px;line-height:40px;font-size:14px;color:#fff;cursor:pointer;user-select:none;}
+.barrage_box .num:hover,
+.barrage_box .num.liked{color:#ff4d4f;}
+.barrage .z {float: left !important;}
+.barrage  a{text-decoration:none;}

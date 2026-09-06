@@ -1,0 +1,943 @@
+﻿
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI弹幕组件-接入业务后端系统 - WebsitePusher 后端定制 API 演示</title>
+    <link type="text/css" rel="stylesheet" href="static/syntaxhighlighter/styles/shCoreDefault.css"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* SyntaxHighlighter 不受全局重置影响, 保留其默认排版 */
+        .syntaxhighlighter * { box-sizing: content-box; }
+        body {
+            font-family: "Microsoft YaHei", Arial, Helvetica, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding-bottom: 40px;
+        }
+        .header {
+            background: #54949B;
+            color: #fff;
+            padding: 48px 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 36px; margin-bottom: 10px; }
+        .header p { font-size: 20px; opacity: .9; }
+        .header .meta { margin-top: 14px; font-size: 16px; opacity: .75; }
+        .container { max-width: 1470px; margin: 30px auto; padding: 0 16px; }
+        .section {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .section h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .section h3 { font-size: 16px; margin: 14px 0 10px; color: #555; }
+        .lead { font-size: 15px; color: #555; margin-bottom: 16px; }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: 8px 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all .15s;
+            margin: 4px 6px 4px 0;
+        }
+        .btn-primary { color: #fff; background-color: #667eea; border-color: #667eea; }
+        .btn-primary:hover { background-color: #5468d4; }
+
+        .btn-lg { padding: 12px 28px; font-size: 16px; }
+        .text-center { text-align: center; }
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        .code-block .s { color: #98c379; }
+        .code-block .c { color: #5c6370; font-style: italic; }
+        .note {
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 10px 14px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #7d6608;
+            border-radius: 0 4px 4px 0;
+        }
+        .api-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+        .api-table th { background: #f5f7fa; text-align: left; padding: 6px 10px; border: 1px solid #eee; }
+        .api-table td { padding: 6px 10px; border: 1px solid #eee; }
+        .api-table code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; }
+        #status { display: inline-block; margin-left: 8px; font-size: 13px; color: #5cb85c; }
+
+        .bb-section {
+            margin-bottom: 3em;
+        }
+
+        .bb-section h4 {
+            margin: 25px 0 10px;
+        }
+
+        .page-header {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>AI弹幕组件-接入业务后端系统</h1>
+    <p>WebsitePusher 服务端过滤 演示</p>
+    <div class="meta">此功能允许业务方通过filter和callback机制，感知用户的操作事件，给注册用户推送评论历史数据以及查询弹幕关联业务评论点赞数，并更新点赞数据。</div>
+</div>
+
+<div class="container">
+    <!-- 快速体验 -->
+    <div class="section">
+        <h2>快速体验 <span id="status"></span></h2>
+        <p class="lead">集成到后端API可以将注册用户推送的消息ID记录到Redis，已登录请求再根据<code>filter</code>校验合法性，例如后端推送例如评论系统历史数据推送给所有人。如果不需要 <code>已登录校验</code>、<code>私信</code>、<code>过滤</code> 等功能，并不需要后端参与，查看<a href="index.html">index.html</a>足够了。</p>
+        <div class="text-center">
+            <button class="btn btn-primary btn-lg" onclick="sendExample()">发送已登录用户弹幕 (trigger)</button>
+        </div>
+        <div class="code-block"><span class="c">&lt;!-- 一行代码进行弹幕推送 --&gt;</span>
+$.getJSON("server.php", {type: "send", channelCode: "4d05f4abdb0a0c2a0269900809946903", head: "后端已审核弹幕推送给所有人可见"});
+        </div>
+        <div class="note">
+            $.getJSON() 请求<code>您的业务后端</code>，后端调用API接口后需要将<code>messageIdList</code>写入redis缓存，方便在<code>filter</code> 接口校验缓存，其他人可看到此条弹幕。
+        </div>
+    </div>
+
+    <section id="usage" class="section bb-section">
+        <div class="page-header">
+            <h2>集成后端推送后并存储到Redis</h2>
+        </div>
+        <div>
+            <section id="send" class="bb-section">
+                <h4> 注册用户推送API </h4>
+                1. 前端WebsitePusher.sendDanMu(sample)更新DOM展示弹幕，仅当前浏览器可见。 <br/>
+                2. 前端渲染完成后调用 sendCallback(item, settings) 回传弹幕数据到后端server.php?action=send。<br/>
+                3. 后端file_get_contents请求推送API后将返回的messageIdList缓存到redis，后续所有人通过filter接口从redis拿到合法的弹幕数据。<br/>
+                浏览器前端<br/>
+                1. 前端 WebsitePusher.sendDanMu(sample) 更新 DOM 展示弹幕，仅当前浏览器可见：<br/>
+                <pre class="brush: js">
+function sendExample() {
+    var sample = {info: "前端发送的第一条弹幕仅本人可见", img: "https://www.phprm.com/push/h5/static/avatar/danMu.png"};
+    WebsitePusher.sendDanMu(sample);
+}
+</pre>
+                2. 前端渲染完成后调用 sendCallback(item, settings) 弹幕数据回传到后端 server.php?action=send：<br/>
+                <pre class="brush: js">
+sendCallback: function (item, settings) {
+    // sendDanMu 仅本地滚动, 这里异步请求后端 trigger 接口实现云端分发
+    console && console.log("sendCallback", item);
+    $.getJSON('https://ws.phprm.com/api/server.php', {type: 'send', channelCode: settings.channelCode, head: "后端已审核弹幕推送给所有人可见", url: window.location.href}, function(resp) {
+        if (resp.code != 0 || !resp.data) {
+            return;
+        }
+        var resultMap = resp.data;
+        console && console.log(resultMap);
+        var messageIdList = resp.data["messageIdList"] || [];
+        if (messageIdList) {
+            // 加入 settings.messageIdList 将跳过 filter 检测
+            for (var i = 0; i < messageIdList.length; i++) {
+                settings.messageIdList.push(messageIdList[i]);
+            }
+        }
+    });
+}
+</pre>
+                server 端(php)<br/>
+                <pre class="brush: php">
+<?php
+if($type == "send") {
+    // 业务后端接受到弹幕后，可以推送弹幕并使用redis缓存messageIdList，也可以审核通过后推送给所有人
+    $channelCode = isset($_GET["channelCode"]) ? $_GET["channelCode"] : "";
+    // 业务方可根据$head按自己的敏感词库进行过滤，如果内容触发敏感可立即返回
+    $head = isset($_GET["head"]) ? $_GET["head"] : "";
+
+    if(empty($channelCode)) {
+        $resultModel["code"] = -1;
+        $resultModel["message"] = "通道码不正确";
+        echo cross_domain(json_encode($resultModel));
+        exit();
+    }
+    // 可以给弹幕带上自定义链接, 但需要满足每30秒内只有一个带连接的url, 这里加上随机数可以跳过限制
+    $url = isset($_GET["url"]) ? $_GET["url"] : $_SERVER["HTTP_REFERER"];
+
+    // 查询当前登录用户的头像网址
+    $avatar = "https://www.phprm.com/push/h5/static/avatar/danMu.png";
+
+    // 弹幕通道已经使用预设通道码加签, 需要额外传timestamp、nonce、sign三个参数, $signSecret请查看http://push.phprm.com/config.html
+    $signSecret = "3f506231f2bbdd44026990080d430abe";
+    $timestamp = getMillisecond();
+    $nonce = md5(time());
+    $rawText = "${timestamp}#${signSecret}#${nonce}";
+    $sign = md5($rawText);
+    // 调用推送API（延迟5秒后才推送到弹幕，防止用户本地弹幕还未建立连接成功就发送弹幕）, 还需注意自动创建的弹幕通道是否开启了签名: http://push.phprm.com/api.html#sign
+    $time = explode(" ", microtime());
+    $url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
+    // head为弹幕内容, 200字以内, 如果是公告类型弹幕不要传url参数，传body=公告markdown文档
+    $nextUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=5000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($head). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
+    $json = file_get_contents($nextUrl);
+    $jsonObject = json_decode($json, true);
+
+    if(empty($jsonObject) || empty($jsonObject["data"]["messageIdList"])) {
+        // 公开弹幕推送失败
+        $resultModel["code"] = -1;
+        $resultModel["message"] = "公开弹幕推送失败";
+        $resultModel["data"] = $json;
+        echo cross_domain(json_encode($resultModel));
+        exit();
+    }
+
+    // 共享模式: 后面的所有消息公开可见, 发送完公开信需要存redis: $kv -> set($redisPrefix . "messageId:". $messageId, "1", 600);缓存起来到filter里验证是否由本系统触发
+    foreach($jsonObject["data"]["messageIdList"] as $messageId) {
+        $kv -> set($redisPrefix . "messageId:". $messageId, $channelCode, 600);
+    }
+
+    // 前端将messageIdList加入this.settings.messageIdList跳过filter过滤, 不是当前用户触发的弹幕不会展示
+    $resultModel["data"] = array("messageIdList" => $jsonObject["data"]["messageIdList"]);
+    echo cross_domain(json_encode($resultModel));
+    exit();
+
+}
+</pre>
+            </section>
+
+            <section id="filter" class="bb-section">
+                <h4> 过滤注册用户推送的评论（danMuFilter） </h4>
+                过滤敏感弹幕或者查询弹幕对应的点赞数据（action=filter），例如业务方通常会按照自己的敏感词库进行过滤或者danMuSetting.like=1。 <br/>
+                浏览器前端 <br/>
+                <pre class="brush: js">
+/**
+ * 弹幕过滤器
+ */
+danMuFilter: function (item) {
+    console && console.log("danMuFilter", item);
+    var _this = this;
+    // 后端异步方式校验, 过滤弹幕和查询点赞次数
+    $.getJSON('https://ws.phprm.com/api/server.php', {type: 'filter', messageId: item.id, bizId: "1", url: window.location.href}, function(resp) {
+        if(resp.code != 0 || ! resp.data){
+            return;
+        }
+        var resultMap = resp.data;
+        // item.id即推送API返回的messageIdList里的第一个消息ID, 后端每次发送弹幕可关联业务评论ID与消息ID, 反查评论ID点赞数
+        item.num = resultMap["likeCount"] ? resultMap["likeCount"] : 0;
+        // 使用默认过滤器回调渲染弹幕
+        return _this.danMuFilterCallback(item, function (dom) {
+            _this.danMuPopCallback(dom, item);
+        });
+    });
+}
+</pre>
+                server 端 (php)
+                <pre class="brush: php">
+if($type == "filter") {
+
+	// 除了AI弹幕，所有用户发送的弹幕都会走到过滤逻辑
+	$messageId = isset($_GET["messageId"]) ? $_GET["messageId"] : 0;
+	$bizId = isset($_GET["bizId"]) ? $_GET["bizId"] : "";
+
+	if(empty($messageId)) {
+		$resultModel["code"] = -1;
+		$resultModel["message"] = "messageId不正确";
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	$messageJson = $kv->get($redisPrefix . "messageId:" . $messageId);
+	if(empty($messageJson)) {
+		// 非本系统触发或者缓存已过期
+		$resultModel["code"] = -1;
+		$resultModel["message"] = "弹幕有效期已过期";
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	$bizCacheJson = $kv->get($redisPrefix . "biz:" . $bizId);
+	$bizObject = json_decode($bizCacheJson, true);
+
+	if(empty($bizObject)) {
+		// 业务(例如评论)应当从数据库查询, 未查到不展示弹幕或者将弹幕数据持久化到
+		$resultModel["code"] = -1;
+		$resultModel["message"] = "未查询到有效业务数据";
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	// 如果danMuSetting.like=1, 需要从数据库中查询出bizId对应的点赞数likeCount
+	$resultModel["data"] = $bizObject;
+	echo cross_domain(json_encode($resultModel));
+    exit();
+
+}
+</pre>
+            </section>
+
+            <section id="init" class="bb-section">
+                <h4> 捕获用户初始化弹幕事件（danMuInitCallback） </h4>
+                回调事件API之弹幕启动回调，该事件触发在用户连接弹幕云端服务成功后仅回调一次。 <br/>
+                浏览器前端 <br/>
+                <pre class="brush: js">
+/**
+ * 弹幕启动回调判断是否初始化弹幕
+ */
+danMuInitCallback: function (settings) {
+    var _this = this;
+    // 这里在后端调用send API, 当设置return false即使用户配置和url参数开启弹幕依然无法启用弹幕
+    console && console.log("danMuInitCallback settings:", settings);
+    var randomUserId = Math.round(Math.round(Math.random() * 100000) / 1000);
+    console && console.log("randomUserId", randomUserId);
+    if (settings.channelCode) {
+        $.getJSON('https://ws.phprm.com/api/server.php', {type: 'init', channelCode: settings.channelCode, bizId: "1", url: window.location.href, nickname: "测试用户"+randomUserId}, function(resp) {
+            if(resp.code != 0 || ! resp.data){
+                return;
+            }
+            var resultMap = resp.data;
+            console && console.log(resultMap);
+            var messageIdList = resp.data["messageIdList"] || [];
+            if (messageIdList) {
+                // 加入_this.messageIdList.push将跳过filter检测
+                for(var i=0; i < resp.data["messageIdList"].length; i++) {
+                    settings.messageIdList.push(resp.data["messageIdList"][i]);
+                }
+            }
+        });
+    }
+    // danMuInitCallback必须return true才能正常初始化弹幕, return false前建议调用WebsitePusher.destroy()(业务方自行存取弹幕开关配置在这里return true/false)
+    return true;
+}
+</pre>
+                server 端 (php)
+                <pre class="brush: php">
+if($type == "init") {
+
+	// 启动时可以将业务id和channelCode进行一对一绑定
+	$bizId = isset($_GET["bizId"]) ? $_GET["bizId"] : "";
+	$channelCode = isset($_GET["channelCode"]) ? $_GET["channelCode"] : "";
+	$nickname = isset($_GET["nickname"]) ? $_GET["nickname"] : "你";
+
+	if(empty($channelCode)) {
+		$resultModel["code"] = -1;
+		$resultModel["message"] = "通道码不正确";
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+	// 可以给弹幕带上自定义链接, 但需要满足每30秒内只有一个带连接的url, 这里加上随机数可以跳过限制
+	$url = isset($_GET["url"]) ? $_GET["url"] : $_SERVER["HTTP_REFERER"];
+
+	// 自定义发布人头像和欢迎语
+	$avatar = "https://www.phprm.com/push/h5/static/avatar/danMu.png";
+
+	// 查询数据库中的评论放到线程池中逐条通过推送API发布
+	$bizCacheJson = $kv -> get($redisPrefix . "biz:". $bizId);
+	if(empty($bizCacheJson)) {
+		$ready = array(
+			"bizId" => $bizId,
+			"likeCount" => 99
+		);
+	} else {
+		$ready = json_decode($bizCacheJson, true);
+	}
+
+	// 弹幕通道已经使用预设通道码加签, 需要额外传timestamp、nonce、sign三个参数, $signSecret请查看http://push.phprm.com/config.html
+	$signSecret = "3f506231f2bbdd44026990080d430abe";
+	$timestamp = getMillisecond();
+	$nonce = md5(time());
+	$rawText = "${timestamp}#${signSecret}#${nonce}";
+	$sign = md5($rawText);
+
+	// 独享模式: 仅当前用户可见, 发送完私信不存redis, 让前端存messageIdList缓存
+	$time = explode(" ", microtime());
+	$url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
+	$sendUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=5000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($nickname.", 你有一条私信仅自己可见"). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
+	$json = file_get_contents($sendUrl);
+	$jsonObject = json_decode($json, true);
+
+	// 返回给前端的白名单消息ID
+	$messageIdList = empty($jsonObject["data"]["messageIdList"]) ? array() : $jsonObject["data"]["messageIdList"];
+
+
+	$timestamp = getMillisecond();
+	$nonce = md5(time());
+	$rawText = "${timestamp}#${signSecret}#${nonce}";
+	$sign = md5($rawText);
+	// 调用推送API（延迟5秒后才推送到弹幕，防止用户本地弹幕还未建立连接成功就发送弹幕）, 还需注意自动创建的弹幕通道是否开启了签名: http://push.phprm.com/api.html#sign
+	$time = explode(" ", microtime());
+	$url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
+	$nextUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=5000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode("大家欢迎".$nickname.", 一大波弹幕来袭"). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
+	$json = file_get_contents($nextUrl);
+	$jsonObject = json_decode($json, true);
+
+	if(empty($jsonObject) || empty($jsonObject["data"]["messageIdList"])) {
+		// 公开弹幕推送失败
+		$resultModel["code"] = -1;
+		$resultModel["message"] = "公开弹幕推送失败";
+		$resultModel["data"] = $json;
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	// 共享模式: 后面的所有消息公开可见, 发送完公开信需要存redis: $kv -> set($redisPrefix . "messageId:". $messageId, "1", 600);缓存起来到filter里验证是否由本系统触发
+	foreach($jsonObject["data"]["messageIdList"] as $messageId) {
+		// 存什么不重要, 重要的是type=filter能校验通过, bizId可以存这里, 后端可以在filter里从messageId缓存读出关联的bizId
+		$kv -> set($redisPrefix . "messageId:". $messageId, $bizId, 600);
+	}
+
+	// 可选: 缓存每个业务的点赞数(仅用于示例filer查询到点赞数)
+	$kv -> set($redisPrefix . "biz:". $ready["bizId"], json_encode($ready), 86400);
+
+	// 前端将messageIdList加入this.settings.messageIdList跳过filter过滤, 不是当前用户触发的弹幕不会展示
+	$resultModel["data"] = array("messageIdList" => $messageIdList);
+	echo cross_domain(json_encode($resultModel));
+    exit();
+
+}
+</pre>
+
+            </section>
+
+            <section id="pop" class="bb-section">
+                <h4> 捕获用户接收到弹幕渲染事件并绑定自定义点击事件（danMuPopCallback）</h4>
+                弹幕开始滚动前绑定点击事件，该事件触发在每条弹幕开始滚动前，会绑定action监听事件并上报给业务后端。 <br/>
+                浏览器前端 <br/>
+                <pre class="brush: js">
+/**
+ * 弹幕开始滚动前绑定点击事件
+ */
+danMuPopCallback: function (dom, item) {
+    console.log("danMuPopCallback", item);
+    // 展示弹幕后给item绑定事件 (barrager.js 通过 .call(div_barrager[0], barrage, action) 触发, this 指向弹幕DOM)
+    item.onAction = function(barrage, action) {
+        // 这里可以根据action对弹幕进行操作
+        //  - action: 'close' 关闭 | 'like' 点赞 | 'unlike' 取消点赞
+        console && console.log("danMuPopCallback弹幕被点击:", action, "内容:", barrage.info);
+        $.getJSON('https://ws.phprm.com/api/server.php', {type: 'click', action: action, messageId: item.id, bizId: "1"}, function(resp) {
+            if(resp.code != 0 || ! resp.data){
+                return;
+            }
+            console && console.log("danMuPopCallback click后端处理逻辑:", resp);
+        });
+    };
+}
+</pre>
+                server 端 (php)
+                <pre class="brush: php">
+if($type == "click") {
+
+	// click操作类型
+	$action = isset($_GET["action"]) ? $_GET["action"] : "like";
+	$bizId = isset($_GET["bizId"]) ? $_GET["bizId"] : "";
+	if(empty($bizId)) {
+		$resultModel["code"] = -1;
+		$resultModel["message"] = "业务ID不正确";
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	// 点赞操作
+	if ($action == "like") {
+
+		$bizCacheJson = $kv->get($redisPrefix . "biz:" . $bizId);
+		$bizObject = json_decode($bizCacheJson, true);
+
+		if(empty($bizObject)) {
+			// 业务(例如评论)应当从数据库查询, 未查到不更新点赞数
+			$resultModel["code"] = -1;
+			$resultModel["message"] = "未查询到有效业务数据";
+			echo cross_domain(json_encode($resultModel));
+			exit();
+		}
+
+		// 如果like:1, 将业务点击次数+1
+		$bizObject["likeCount"] = $bizObject["likeCount"] + 1;
+
+		// 更新业务数据里的点赞次数
+		$kv -> set($redisPrefix . "biz:". $bizObject["bizId"], json_encode($bizObject), 86400);
+
+		$resultModel["data"] = $bizObject;
+	}
+	// TODO: close（举报不良弹幕）关闭事件
+	echo cross_domain(json_encode($resultModel));
+    exit();
+
+}
+</pre>
+            </section>
+
+            <section id="ai" class="bb-section">
+                <h4> 重写AI 后端处理逻辑（checkAiDanMu）</h4>
+                指定在danMuSetting.aiDanMuUrl为action=checkAiDanMu，仅允许已注册用户触发AI弹幕功能（还可以根据业务ID进行提示词调优）。 <br/>
+                浏览器前端 <br/>
+                <pre class="brush: js">
+/**
+ * 配置aiDanMu>0即可
+ */
+var settings = {
+        appName: "AI弹幕",
+        cssSite: "static/css/",
+        jsSite: "static/js",
+        danMu: 1,
+        channelCode: "4d05f4abdb0a0c2a0269900809946903",
+		device: "81614",	                            // 指定业务后端注册用户唯一UID，将从channelMemberUrl自动换取uid
+        hidePanel: 1,
+        hideDialog: 1,
+        danMuSetting: {
+            aiDanMu: 60,	                            // 每60秒间隔轮询一次后端, 当后端异常或者aiRestAmount<=0将终止轮询
+            aiDanMuUrl: "server.php?type=checkAiDanMu",	// 自定义AI弹幕的后端地址即可
+            hideIcon: 0,
+            opacity: 50,
+            size: 20,
+            speed: 18,
+            like: 1,
+            close: 0,
+            color: "#fff"
+        }
+}
+// 如果需要server.php?type=checkAiDanMu接收到更多参数，可重写settings.checkAiDanMu方法
+</pre>
+                server 端 (php)
+                <pre class="brush: php">
+if($type == "checkAiDanMu") {
+
+	$channelCode = isset($_GET["channelCode"]) ? $_GET["channelCode"] : "";
+	$pollCount = isset($_GET["pollCount"]) ?  (int) $_GET["pollCount"] : 0;
+
+	if ($pollCount > 1000) {
+		$resultModel["message"] = "全村的笋都被你夺完了, 刷新完页面再试吧, pollCount=".$pollCount;
+		// 炒股1000次不允许重试
+		$resultModel["data"] = array("aiRestAmount" => 0, "messageIdList" => array());
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	// 慎重: 这里需要使用redis对TPS进行流控, 否则弹幕数将与请求同一个接口的人数成正比, 影响所有打开同一个页面体验, 可以给$channelCode加一个setNx快速失败的检测锁（有效期应该大于本脚本执行耗时小于js里面aiDanMu传参)
+	$setFlag = $kv -> setnx($redisPrefix . "lock:" . $channelCode, json_encode($_GET), 2);
+
+	if (!$setFlag) {
+		$resultModel["code"] = 0;
+		$resultModel["message"] = "加锁失败, 有人已经触发了AI弹幕, pollCount=".$pollCount;
+		// 查询计数器剩余有效时间
+		$ttl = $kv -> ttl($redisPrefix . "lock:" . $channelCode);
+		if ($ttl <= 0) {
+			$kv -> delete($redisPrefix . "lock:" . $channelCode);
+		}
+		// 加锁失败允许下次重试需要返回大于0的aiRestAmount
+		$resultModel["data"] = array("aiRestAmount" => 1, "messageIdList" => array());
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	// 限流: 每1分钟可调用5次
+	$aiRestAmountKey = $redisPrefix . "rest:" . $channelCode;
+	$kv -> setnx($aiRestAmountKey, 5, 60);
+	// 每次访问-1
+	$aiRestAmount = $kv -> decr($aiRestAmountKey);
+	if ($aiRestAmount <= 0) {
+		// 查询计数器剩余有效时间
+		$ttl = $kv -> ttl($aiRestAmountKey);
+		if ($ttl <= 0) {
+			$kv -> delete($aiRestAmountKey);
+		}
+
+		$resultModel["message"] = "当前AI弹幕额度已耗尽, 请".$ttl."秒后再试, pollCount=".$pollCount;
+		// 正式环境，需要产品/开发者自行决定aiRestAmount返回0还是1, 如果返回0前端将终止轮询
+		$resultModel["data"] = array("aiRestAmount" => 1, "messageIdList" => array());
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	// 业务执行: 这里可以拿着$title去请求AI接口, 拿到返回值拼接成head调用推送API
+	$aiUrl = "https://api.moonshot.cn/anthropic/v1/messages";
+	$aiUrl = "https://api.deepseek.com/";
+	//$chatResult = requestAI($aiUrl, 'sk-fake', 'kimi-k3');
+	$chatResult = requestAI($aiUrl, 'sk-fake', 'deepseek-v4-flash');
+
+
+	// 降级为其他弹幕内容
+	$head = "你正访问的网页标题是: ".$_GET["title"];
+	if (!empty($chatResult['choices'][0]['message']['content']) || !empty($chatResult['choices'][0]['message']['reasoning_content'])) {
+		$answer = !empty($chatResult['choices'][0]['message']['content']) ? trim($chatResult['choices'][0]['message']['content']) : trim($chatResult['choices'][0]['message']['reasoning_content']);
+		// 设置缓存
+		$head = empty($answer) ? "AI响应数据异常" : $answer;
+	}
+	// 自定义发布人头像
+	$avatar = "https://www.phprm.com/push/h5/static/avatar/danMu.png";
+
+	// 弹幕通道已经全部使用预设通道码加签, 需要额外传timestamp、nonce、sign三个参数
+	$signSecret = "3f506231f2bbdd44026990080d430abe";
+	$timestamp = getMillisecond();
+	$nonce = md5(time());
+	$rawText = "${timestamp}#${signSecret}#${nonce}";
+	$sign = md5($rawText);
+
+	// 假设已从AI大模型拿到了返回值, 推送后立即将$messageIdList在触发的前端注册(减少当触发filter请求)
+	$sendUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=1000&head=".urlencode($head) . "&avatar=".rawurlencode($avatar). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
+	$json = file_get_contents($sendUrl);
+	$jsonObject = json_decode($json, true);
+
+	if(empty($jsonObject) || empty($jsonObject["data"]["messageIdList"])) {
+		// 弹幕消息推送失败
+		$resultModel["code"] = -1;
+		$resultModel["message"] = "弹幕消息推送失败";
+		$resultModel["data"] = $json;
+		echo cross_domain(json_encode($resultModel));
+		exit();
+	}
+
+	// AI弹幕可以在共享模式给其他用户看到
+	foreach($jsonObject["data"]["messageIdList"] as $messageId) {
+		// 如果不重写settings.checkAiDanMu方法, 这里只能存$channelCode
+		$kv -> set($redisPrefix . "messageId:". $messageId, $channelCode, 600);
+	}
+
+	// AI推送的弹幕不需要后端缓存, 前端缓存了messageIdList, 只需将messageIdList返回给前端跳过过滤动作(适合所有人接收)
+	$messageIdList = $jsonObject["data"]["messageIdList"];
+	$resultModel["data"] = array("aiRestAmount" => $aiRestAmount, "messageIdList" => $messageIdList, "response" => $json);
+	echo cross_domain(json_encode($resultModel));
+    exit();
+
+}
+</pre>
+            </section>
+        </div>
+    </section>
+
+    <!-- 一行代码集成 -->
+    <div class="section">
+        <h2>自定义后端权限以及弹幕过滤、点赞（生产环境）</h2>
+        <p class="lead">在你的网站任意页面引入资源 <code>&lt;script&gt;</code>，<code>danmu.js</code> 后, 再自定义 <code>WebsitePusher.init(settings)</code>初始化弹幕插件：</p>
+        <div class="code-block"><span class="c">&lt;!-- 自定义集成 AiDanMu 弹幕推送 --&gt;</span>
+&lt;script src=<span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=preload&hidePanel=1&hideDialog=1&hideIcon=1"</span>&gt;&lt;/script&gt;
+&lt;script</span>&gt;WebsitePusher.init(settings)&lt;/script&gt;</div>
+        <h3>WebsitePusher 公开 API 速查</h3>
+        <table class="api-table">
+            <tr><th>方法</th><th>说明</th></tr>
+            <tr><td><code>sendDanMu(item)</code></td><td>主动发送弹幕(仅调试样式使用, 当前屏幕滚动, 不请求业务方后端)，如需存储后再推送, 请在sendCallback回调中异步请求业务方后端, 再由后端进行推送</td></tr>
+            <tr><td><code>sendCallback(item, settings)</code></td><td>渲染完成后(或因去重/空白被拦截后)调用sendCallback将前端弹幕回传给业务方后端</td></tr>
+            <tr><td><code>danMuInitCallback(settings)</code></td><td>弹幕启动回调, 可以从本地LocalStorage或者后端ajax异步读取开关配置(在danMuInitCallback里面return true/false即可实现弹幕组件是否初始化)</td></tr>
+            <tr><td><code>danMuFilter(item)</code></td><td>每条弹幕分发入口（默认走过滤链）</td></tr>
+            <tr><td><code>danMuPopCallback(item, callback)</code></td><td>弹幕开始滚动前绑定点击事件，该事件触发在每条弹幕开始滚动前，会绑定action监听事件并上报给业务后端</td></tr>
+            <tr><td><code>checkAiDanMu(doc, pollCount)</code></td><td>仅允许已注册用户触发AI弹幕功能（还可以根据业务ID进行提示词调优）</td></tr>
+        </table>
+    </div>
+
+</div>
+
+<script type="text/javascript" src="static/syntaxhighlighter/scripts/shCore.js"></script>
+<script type="text/javascript" src="static/syntaxhighlighter/scripts/shBrushJScript.js"></script>
+<script type="text/javascript" src="static/syntaxhighlighter/scripts/shBrushPhp.js"></script>
+
+<!-- 可以预加载js资源和css文件后再进行init -->
+<script src="static/js/danmu.js?appName=preload&hidePanel=1&hideDialog=1&hideIcon=1"></script>
+<script type="text/javascript">
+    // 初始化 SyntaxHighlighter, 高亮 <pre class="brush: xxx"> 代码块
+    SyntaxHighlighter.all();
+</script>
+<script type="text/javascript">
+    (function() {
+        function seriesLoadPusherScripts(scripts, callback) {
+            if (typeof scripts != "object") {
+                scripts = [scripts];
+            }
+            var HEAD =
+                document.getElementsByTagName("head").item(0) || document.documentElement;
+            var s = new Array();
+            var last = scripts.length - 1;
+            var recursiveLoad = function (i) {
+                s[i] = document.createElement("script");
+                s[i].setAttribute("type", "text/javascript");
+                s[i].onload = s[i].onreadystatechange = function () {
+                    if (
+                        navigator.userAgent.indexOf("MSIE") == -1 ||
+                        this.readyState == "loaded" ||
+                        this.readyState == "complete"
+                    ) {
+                        this.onload = this.onreadystatechange = null;
+                        this.parentNode.removeChild(this);
+                        if (i != last) {
+                            recursiveLoad(i + 1);
+                        } else if (typeof callback == "function") {
+                            callback();
+                        }
+                    }
+                };
+                s[i].setAttribute("src", scripts[i]);
+                s[i].setAttribute("charset", "utf-8");
+                HEAD.appendChild(s[i]);
+            };
+            recursiveLoad(0);
+        }
+        var cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'static/css/barrager.css';
+        document.head.appendChild(cssLink);
+        var pusherScripts = [
+            "static/js/jquery.min.js",
+            "static/js/fingerprint2.min.js",
+            "static/js/md5.js",
+            "static/js/pusher.js",
+            "static/js/socket.io.min.js",
+            "static/js/jquery.barrager.js"
+        ];
+
+        // 例如点击某个按钮后动态加载资源方式：可以保证WebsitePusher 已初始化情况下进行init
+		/*
+        seriesLoadPusherScripts(pusherScripts, function() {
+            // 仅展示用，加载资源方所有资源后，进行弹幕初始化WebsitePusher.init({})
+			WebsitePusher.init({});
+        });
+		 */
+    })();
+</script>
+<script type="text/javascript">
+    /* ============================================================
+     *  全局配置: 传给 WebsitePusher.init(options)
+     *  - appName        应用名称(必填)
+     *  - channelCode    推送通道码, 触发远程弹幕时使用
+     *  - hidePanel/     1=隐藏推送面板/对话框, 避免遮挡演示页
+     *    hideDialog
+     *  - danMuSetting   弹幕默认外观, updateDanMu 会在此基础上深合并
+     *  - sendCallback   sendDanMu 渲染完成后的回调, 此处演示把本地弹幕
+     *                   异步推送到后端 trigger 接口, 实现"先本地滚动, 再云端分发"
+     * ============================================================ */
+    var settings = {
+        appName: "AI弹幕",	 	// 必填
+        cssSite: "static/css/", // 为空将使用默认地址
+        jsSite: "static/js",	// 为空将使用默认地址
+        danMu: 1,				// 弹幕传1
+        channelCode: "4d05f4abdb0a0c2a0269900809946903",	// 未认证域名必传, 已认证域名可不传, 若指定将从指定通道监听和发送弹幕数据
+		device: "10086",	    // 指定业务后端注册用户唯一UID，将从channelMemberUrl自动换取uid, 头像请根据device自行映射头像和昵称
+        hidePanel: 0,			// 是否隐藏默认面板
+        hideDialog: 1,			// 是否隐藏默认对话窗口
+        danMuSetting: {
+            hideIcon: 0,        // 0=显示右下角浮窗图标
+            opacity: 50,        // 背景不透明度 0~100, 100=全不透明
+            size: 20,           // 字号 8~33
+            speed: 18,          // 飞行秒数
+            like: 1,            // 1=显示点赞按钮
+            close: 0,           // 0=不显示关闭按钮(优先于 like)
+            color: "#fff"       // 文字颜色
+        },
+		/**
+		 * 弹幕启动回调判断是否初始化弹幕
+		 */
+		danMuInitCallback: function (settings) {
+			// 这里在后端调用send API, 当设置return false即使用户配置和url参数开启弹幕依然无法启用弹幕
+			console && console.log("danMuInitCallback settings:", settings);
+			var randomUserId = Math.round(Math.round(Math.random() * 100000) / 1000);
+			console && console.log("randomUserId", randomUserId);
+			if (settings.channelCode) {
+				$.getJSON('https://ws.phprm.com/api/server.php', {type: 'init', channelCode: settings.channelCode, bizId: "1", url: window.location.href, nickname: "测试用户"+randomUserId}, function(resp) {
+					if(resp.code != 0 || ! resp.data){
+						return;
+					}
+					var resultMap = resp.data;
+					console && console.log(resultMap);
+					var messageIdList = resp.data["messageIdList"] || [];
+					if (messageIdList) {
+						// 加入_this.messageIdList.push将跳过filter检测
+						for(var i=0; i<resp.data["messageIdList"].length; i++) {
+							settings.messageIdList.push(resp.data["messageIdList"][i]);
+						}
+					}
+				});
+			}
+			// danMuInitCallback必须return true才能正常初始化弹幕, return false前建议调用WebsitePusher.destroy()(业务方自行存取弹幕开关配置在这里return true/false)
+			return true;
+		},
+		/**
+		 * 弹幕过滤器
+		 */
+		danMuFilter: function (item) {
+			console && console.log("danMuFilter", item);
+			var _this = this;
+			// 后端异步方式校验, 过滤弹幕和查询点赞次数
+			$.getJSON('https://ws.phprm.com/api/server.php', {type: 'filter', messageId: item.id, bizId: "1", url: window.location.href}, function(resp) {
+				if(resp.code != 0 || ! resp.data){
+					return;
+				}
+				var resultMap = resp.data;
+				// item.id即推送API返回的messageIdList里的第一个消息ID, 后端每次发送弹幕可关联业务评论ID与消息ID, 反查评论ID点赞数
+				item.num = resultMap["likeCount"] ? resultMap["likeCount"] : 0;
+				// 使用默认过滤器回调渲染弹幕
+				return _this.danMuFilterCallback(item, function (dom) {
+					_this.danMuPopCallback(dom, item);
+				});
+			});
+		},
+		/**
+		 * 弹幕开始滚动前绑定点击事件
+		 */
+		danMuPopCallback: function (dom, item) {
+			console.log("danMuPopCallback", item);
+			// 展示弹幕后给item绑定事件 (barrager.js 通过 .call(div_barrager[0], barrage, action) 触发, this 指向弹幕DOM)
+			item.onAction = function(barrage, action) {
+				// 这里可以根据action对弹幕进行操作
+				//  - action: 'close' 关闭 | 'like' 点赞 | 'unlike' 取消点赞
+				console && console.log("danMuPopCallback弹幕被点击:", action, "内容:", barrage.info);
+				$.getJSON('https://ws.phprm.com/api/server.php', {type: 'click', action: action, messageId: item.id, bizId: "1"}, function(resp) {
+					if(resp.code != 0 || ! resp.data){
+						return;
+					}
+					console && console.log("danMuPopCallback click后端处理逻辑:", resp);
+				});
+			};
+		},
+        sendCallback: function (item, settings) {
+            // sendDanMu 仅本地滚动, 这里异步请求后端 trigger 接口不审核直接推送给其他人
+            console && console.log("sendCallback", item);
+            $.getJSON('https://ws.phprm.com/api/server.php', {type: 'send', channelCode: settings.channelCode, head: "后端已审核弹幕推送给所有人可见", url: window.location.href}, function(resp) {
+                if(resp.code != 0 || ! resp.data){
+                    return;
+                }
+                var resultMap = resp.data;
+                console && console.log(resultMap);
+                var messageIdList = resp.data["messageIdList"] || [];
+                if (messageIdList) {
+                    // 加入_this.messageIdList.push将跳过filter检测
+                    for(var i=0; i<messageIdList.length; i++) {
+                        settings.messageIdList.push(messageIdList[i]);
+                    }
+                }
+            });
+        },
+        danMuSendOpen: function (settings) {
+            console && console.log("danMuSendOpen settings", settings);
+            // 避免重复创建
+            if (document.getElementById("dm-send-box")) return;
+            var box = document.createElement("div");
+            box.id = "dm-send-box";
+            box.style.cssText = [
+                "position:fixed",
+                "left:50%",
+                "transform:translateX(-50%)",
+                "bottom:20px",
+                "z-index:2147483647",
+                "width:500px",
+                "padding:12px 14px",
+                "background:rgba(30,30,30,.5)",
+                "border-radius:10px",
+                "box-shadow:0 4px 20px rgba(0,0,0,.4)",
+                "display:flex",
+                "gap:8px",
+                "align-items:center"
+            ].join(";");
+            var input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = "来发弹幕~";
+            input.style.cssText = [
+                "flex:1",
+                "height:36px",
+                "line-height:40px",
+                "padding:8px 10px",
+                "border:1px solid rgba(255,255,255,.25)",
+                "border-radius:6px",
+                "background:rgb(111 111 111)",
+                "color:#fff",
+                "font-size:16px",
+                "outline:none"
+            ].join(";");
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    sendBtn.click();
+                }
+            });
+            var sendBtn = document.createElement("button");
+            sendBtn.textContent = "发送";
+            sendBtn.style.cssText = [
+                "padding:8px 18px",
+                "border:none",
+                "border-radius:6px",
+                "background:#4b8afe",
+                "color:#fff",
+                "font-size:13px",
+                "cursor:pointer",
+                "white-space:nowrap"
+            ].join(";");
+            sendBtn.addEventListener("click", function () {
+                var text = input.value.trim();
+                if (!text) return;
+                if (typeof WebsitePusher !== "undefined" && typeof WebsitePusher.sendDanMu === "function") {
+                    WebsitePusher.sendDanMu({ info: text, img: settings.avatar});
+                }
+                input.value = "";
+                input.focus();
+            });
+            var closeBtn = document.createElement("span");
+            closeBtn.textContent = "×";
+            closeBtn.style.cssText = [
+                "position:absolute",
+                "top:-8px",
+                "right:-8px",
+                "width:20px",
+                "height:20px",
+                "line-height:18px",
+                "text-align:center",
+                "background:#444",
+                "color:#fff",
+                "border-radius:50%",
+                "font-size:14px",
+                "cursor:pointer",
+                "user-select:none"
+            ].join(";");
+            closeBtn.addEventListener("click", function () {
+                box.remove();
+                settings.danMuSendOpened = false;
+            });
+            box.appendChild(input);
+            box.appendChild(sendBtn);
+            box.appendChild(closeBtn);
+            document.body.appendChild(box);
+            input.focus();
+        },
+        danMuSendClose: function (settings) {
+            var box = document.getElementById("dm-send-box");
+            if (box) {
+                box.remove();
+            }
+        }
+    };
+
+    /* ============================================================
+     *  初始化入口
+     *  依赖(jquery/pusher.js 等)由 head 里的 danmu.js 异步加载,
+     *  因此在 window.onload 时 WebsitePusher 已就绪, 手动调用 init
+     * ============================================================ */
+    window.onload = function () {
+        document.getElementById("status").textContent = "✓ WebsitePusher 已初始化";
+		WebsitePusher.init(settings);
+    };
+
+    /* ============================================================
+     *  弹幕发送
+     * ============================================================ */
+
+    // 快速体验: 直接调用后端 trigger 接口写入一条弹幕
+    function sendExample() {
+        var sample = {info: "前端发送的弹幕仅本人可见", img: "https://www.phprm.com/push/h5/static/avatar/danMu.png"};
+        WebsitePusher.sendDanMu(sample);
+    }
+</script>
+</body>
+</html>

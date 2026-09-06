@@ -1,0 +1,29 @@
+﻿# ===== IDE / 编辑器 =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ===== 操作系统 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 日志 / 临时文件 =====
+*.log
+*.tmp
+*_tmp_*
+
+# ===== 本地辅助 / 调试脚本 =====
+_extract.js
+check_*.ps1
+fix_*.ps1
+fix_chinese.js
+escape_pre.ps1
+
+# ===== PHP 缓存 =====
+*.php~
