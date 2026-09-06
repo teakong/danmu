@@ -2,6 +2,16 @@
 
 一行代码，为任意网站接入弹幕系统。支持 AI 自动弹幕、WebSocket 实时推送、点赞/关闭交互、后端审核过滤，适用于个人博客、直播、评论系统等场景，无需后端开箱可用。
 
+## 在线演示
+
+| 页面 | 地址 | 说明 |
+| ---- | ---- | ---- |
+| [无后端集成](https://teakong.github.io/danmu/index.html) | `https://teakong.github.io/danmu/index.html` | 纯前端弹幕 + 浮窗控制 + 弹幕发送 |
+| [后端过滤系统](https://teakong.github.io/danmu/server.html) | `https://teakong.github.io/danmu/server.html` | 后端审核 + Redis 缓存 + 注册用户推送 |
+| [最简集成](https://teakong.github.io/danmu/simple.html) | `https://teakong.github.io/danmu/simple.html` | 一行 script 标签集成示例 |
+
+> 也可以通过自定义域名访问：`https://danmu.phprm.com`
+
 ## 特性
 
 - **一行代码集成**：引入 danmu.js 即自动加载依赖、连接通道、渲染弹幕
