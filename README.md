@@ -10,7 +10,12 @@
 | [后端过滤系统](https://teakong.github.io/danmu/server.html) | `https://teakong.github.io/danmu/server.html` | 后端审核 + Redis 缓存 + 注册用户推送 |
 | [最简集成](https://teakong.github.io/danmu/simple.html) | `https://teakong.github.io/danmu/simple.html` | 一行 script 标签集成示例 |
 
-> 也可以通过自定义域名访问：`https://danmu.phprm.com`
+## 代码仓库
+
+| 平台 | 地址 | 说明 |
+| ---- | ---- | ---- |
+| [GitHub](https://github.com/teakong/danmu) | `https://github.com/teakong/danmu` | 国际用户首选 |
+| [Gitee 码云](https://gitee.com/teakong/danmu) | `https://gitee.com/teakong/danmu` | 国内用户加速访问 |
 
 ## 特性
 
@@ -30,7 +35,7 @@
 ## 目录结构
 
 ```
-AiDanMu/
+danmu/
 ├── index.html                 # 演示页（无后端集成 + 浮窗控制 + 弹幕发送）
 ├── server.html                # 演示页（后端过滤 + Redis 缓存 + 注册用户推送）
 ├── simple.html                # 最简集成示例（一行 script 标签）
@@ -85,12 +90,10 @@ danmu.js 会按序自动加载 md5.js / socket.io.min.js / jquery.barrager.js / 
 | appName | 应用名称（必填，用于数据统计） |
 | channelCode | 推送通道码，到弹幕云服务官网注册后获取 |
 | danMu | 1=开启弹幕，0=关闭 |
-| aiDanMu | AI 弹幕轮询间隔（秒），0=关闭 |
+| danmu | AI 弹幕轮询间隔（秒），0=关闭 |
 | hideDialog | 1=隐藏推送对话框 |
 | hidePanel | 1=隐藏推送面板 |
 | hideIcon | 1=隐藏右下角浮窗图标 |
-
-> 依赖路径按 danmu.js 自身所在目录解析，无论宿主页面放在哪都能正确加载。
 
 ### 高级集成（自定义配置）
 
@@ -108,7 +111,7 @@ WebsitePusher.init({
         like: 1,           // 显示点赞按钮
         close: 0,          // 不显示关闭按钮
         color: "#fff",     // 文字颜色
-        aiDanMu: 30,       // 每30秒轮询一次AI弹幕云服务，AI大模型识别当前网页自动生成弹幕
+        danmu: 30,       // 每30秒轮询一次AI弹幕云服务，AI大模型识别当前网页自动生成弹幕
         selector: "body"   // 默认选择body, 可通过公开API: setDanMuArea设置区域 
     },
     // 弹幕初始化闸门：return false 时不创建 socket 连接
@@ -142,14 +145,14 @@ WebsitePusher.init({
 直接双击浏览器访问：
 
 ```
-http://localhost/AiDanMu/index.html       # 无后端集成演示
-http://localhost/AiDanMu/simple.html      # 最简集成示例
+http://localhost/danmu/index.html       # 无后端集成演示
+http://localhost/danmu/simple.html      # 最简集成示例
 ```
 
 把整个目录放到 PHP 环境（如 XAMPP / phpStudy），浏览器访问：
 
 ```
-http://localhost/AiDanMu/server.html      # 后端过滤演示
+http://localhost/danmu/server.html      # 后端过滤演示
 ```
 
 ## WebsitePusher 公开 API
@@ -192,7 +195,7 @@ http://localhost/AiDanMu/server.html      # 后端过滤演示
 | ---- | ---- | ---- |
 | 外观 | opacity(0~100) / size(8~33) / speed(飞行秒数) / color(文字颜色) / bottom(底部偏移px) | — |
 | 开关 | close(0/1) / like(0/1) / selector(挂载选择器，默认 body) | — |
-| AI | aiDanMu(轮询秒数，0=关) / aiDanMuUrl(AI接口，空则回退 apiUrl) / bottomradio(固定底部开关) | — |
+| AI | danmu(轮询秒数，0=关) / danmuUrl(AI接口，空则回退 apiUrl) / bottomradio(固定底部开关) | — |
 | 浮窗 | hideIcon(0/1) | 是否隐藏右下角浮窗图标 |
 
 ### 回调钩子
