@@ -59,37 +59,80 @@
             transition: all .15s;
             margin: 4px 6px 4px 0;
         }
-        .btn-primary { color: #fff; background-color: #667eea; border-color: #667eea; }
+        .btn-primary { color: #fff; background-color: #138496; border-color: #117a8b; }
         .btn-primary:hover { background-color: #5468d4; }
 
         .btn-lg { padding: 12px 28px; font-size: 16px; }
         .text-center { text-align: center; }
         .code-block {
-            background: #282c34;
-            color: #abb2bf;
-            padding: 16px;
-            border-radius: 6px;
+            background: #1e293b;
+            color: #a5f3a5;
+            border-radius: 12px;
             font-family: Consolas, Monaco, "Courier New", monospace;
-            font-size: 13px;
-            line-height: 1.7;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,.15);
+            margin: 12px 0;
+        }
+        .code-block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        .code-block-dots { display: flex; gap: 8px; }
+        .code-block-dots span {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+        }
+        .code-block-dots .dot-red { background: #ff5f56; }
+        .code-block-dots .dot-yellow { background: #ffbd2e; }
+        .code-block-dots .dot-green { background: #27c93f; }
+        .code-block-copy {
+            background: none; border: none; color: #94a3b8; cursor: pointer;
+            font-size: 12px; padding: 4px 8px; border-radius: 4px;
+            display: flex; align-items: center; gap: 4px;
+            transition: all .15s;
+        }
+        .code-block-copy:hover { background: #334155; color: #e2e8f0; }
+        .code-block-copy svg { width: 14px; height: 14px; fill: currentColor; }
+        .code-block-body {
+            padding: 16px;
             overflow-x: auto;
             white-space: pre;
+            background: #1e293b;
         }
-        .code-block .s { color: #98c379; }
-        .code-block .c { color: #5c6370; font-style: italic; }
+        .code-block .s { color: #86efac; }
+        .code-block .c { color: #64748b; font-style: italic; }
         .note {
-            background: #fff8e1;
-            border-left: 4px solid #ffc107;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
             padding: 10px 14px;
             margin: 12px 0;
             font-size: 13px;
-            color: #7d6608;
-            border-radius: 0 4px 4px 0;
+            color: #0d47a1;
+            border-radius: 0 6px 6px 0;
+            line-height: 1.7;
         }
-        .api-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+        .note code {
+            background: rgba(0,0,0,.05);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #0d47a1;
+        }
+        .api-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
         .api-table th { background: #f5f7fa; text-align: left; padding: 6px 10px; border: 1px solid #eee; }
         .api-table td { padding: 6px 10px; border: 1px solid #eee; }
-        .api-table code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; }
+        .api-table code {
+			background: #f0f0f0;
+			padding: 1px 5px;
+			border-radius: 3px;
+			font-size: 14px;
+			color: #d6336c;
+		}
         #status { display: inline-block; margin-left: 8px; font-size: 13px; color: #5cb85c; }
 
         .bb-section {
@@ -142,11 +185,24 @@
         <div class="text-center">
             <button class="btn btn-primary btn-lg" onclick="sendExample()">发送已登录用户弹幕 (trigger)</button>
         </div>
-        <div class="code-block"><span class="c">&lt;!-- 将弹幕提交到后端审核通过后推送给所有人 --&gt;</span>
+        <div class="code-block">
+            <div class="code-block-header">
+                <div class="code-block-dots">
+                    <span class="dot-red"></span>
+                    <span class="dot-yellow"></span>
+                    <span class="dot-green"></span>
+                </div>
+                <button class="code-block-copy" onclick="copyCode(this)">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    复制
+                </button>
+            </div>
+            <div class="code-block-body"><span class="c">&lt;!-- 将弹幕提交到后端审核通过后推送给所有人 --&gt;</span>
 $.getJSON("server.php", {type: "send", channelCode: "4d05f4abdb0a0c2a0269900809946903", head: "后端已审核弹幕推送给所有人可见"});
+</div>
         </div>
         <div class="note">
-            $.getJSON() 请求<code>您的业务后端</code>，后端调用API接口后需要将<code>messageIdList</code>写入redis缓存，方便在<code>filter</code> 接口校验缓存，其他人可看到此条弹幕。
+            💡 提示：<code>$.getJSON()</code> 请求 <code>您的业务后端</code>，后端调用 API 接口后需要将 <code>messageIdList</code> 写入 Redis 缓存，方便在 <code>filter</code> 接口校验缓存，其他人可看到此条弹幕。
         </div>
     </div>
 
@@ -650,9 +706,26 @@ if($type == "checkAiDanMu") {
     <div class="section">
         <h2>自定义后端权限以及弹幕过滤、点赞（生产环境）</h2>
         <p class="lead">在你的网站任意页面引入资源 <code>&lt;script&gt;</code>，<code>danmu.js</code> 后, 再自定义 <code>WebsitePusher.init(settings)</code>初始化弹幕插件：</p>
-        <div class="code-block"><span class="c">&lt;!-- 自定义集成 AiDanMu 弹幕推送 --&gt;</span>
-&lt;script src=<span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=preload&hidePanel=1&hideDialog=1&hideIcon=1"</span>&gt;&lt;/script&gt;
-&lt;script</span>&gt;WebsitePusher.init(settings)&lt;/script&gt;</div>
+        <div class="code-block">
+            <div class="code-block-header">
+                <div class="code-block-dots">
+                    <span class="dot-red"></span>
+                    <span class="dot-yellow"></span>
+                    <span class="dot-green"></span>
+                </div>
+                <button class="code-block-copy" onclick="copyCode(this)">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                    复制
+                </button>
+            </div>
+            <div class="code-block-body">&lt;script src=<span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=AI弹幕&amp;hideDialog=1&amp;autoInit=0"</span>&gt;&lt;/script&gt;
+&lt;script&gt;
+    document.addEventListener(<span class="s">'websitePusherReady'</span>, <span class="k">function</span>(e) {
+        <span class="c">&lt;!-- 自定义集成 AiDanMu 弹幕推送 --&gt;</span>
+        WebsitePusher.init(settings);
+    });
+&lt;/script&gt;</div>
+        </div>
         <h3>WebsitePusher 公开 API 速查</h3>
         <table class="api-table">
             <tr><th>方法</th><th>说明</th></tr>
@@ -672,13 +745,14 @@ if($type == "checkAiDanMu") {
 <script type="text/javascript" src="static/syntaxhighlighter/scripts/shBrushPhp.js"></script>
 
 <!-- 可以预加载js资源和css文件后再进行init -->
-<script src="static/js/danmu.js?appName=preload&hidePanel=1&hideDialog=1&hideIcon=1"></script>
+<script src="static/js/danmu.js?appName=AI弹幕&hideDialog=1&autoInit=0"></script>
 <script type="text/javascript">
     // 初始化 SyntaxHighlighter, 高亮 <pre class="brush: xxx"> 代码块
     SyntaxHighlighter.all();
 </script>
 <script type="text/javascript">
     (function() {
+		/*
         function seriesLoadPusherScripts(scripts, callback) {
             if (typeof scripts != "object") {
                 scripts = [scripts];
@@ -711,6 +785,7 @@ if($type == "checkAiDanMu") {
             };
             recursiveLoad(0);
         }
+        // 允许按点击事件开启弹幕加载css和js资源
         var cssLink = document.createElement('link');
         cssLink.rel = 'stylesheet';
         cssLink.href = 'static/css/barrager.css';
@@ -725,7 +800,6 @@ if($type == "checkAiDanMu") {
         ];
 
         // 例如点击某个按钮后动态加载资源方式：可以保证WebsitePusher 已初始化情况下进行init
-		/*
         seriesLoadPusherScripts(pusherScripts, function() {
             // 仅展示用，加载资源方所有资源后，进行弹幕初始化WebsitePusher.init({})
 			WebsitePusher.init({});
@@ -942,15 +1016,19 @@ if($type == "checkAiDanMu") {
         }
     };
 
-    /* ============================================================
-     *  初始化入口
-     *  依赖(jquery/pusher.js 等)由 head 里的 danmu.js 异步加载,
-     *  因此在 window.onload 时 WebsitePusher 已就绪, 手动调用 init
-     * ============================================================ */
-    window.onload = function () {
-        document.getElementById("status").textContent = "✓ WebsitePusher 已初始化";
+	// 关闭自动初始化，等依赖加载完成后手动 init
+	document.addEventListener('websitePusherReady', function(e) {
+		// 指定settings初始化弹幕
 		WebsitePusher.init(settings);
-    };
+		document.getElementById("status").textContent = "✓ WebsitePusher 已初始化";
+
+		// 仅页面演示使用动态加载 pick-a-color.js, 加载完成后初始化所有 .pick-a-color 输入框
+		WebsitePusher.parallelLoadScripts(["static/pick-a-color/js/pick-a-color-1.2.3.min.js"], function () {
+			if (typeof jQuery.fn.pickAColor === "function") {
+				jQuery(".pick-a-color").pickAColor();
+			}
+		});
+	});
 
     /* ============================================================
      *  弹幕发送
@@ -960,6 +1038,26 @@ if($type == "checkAiDanMu") {
     function sendExample() {
         var sample = {info: "前端发送的弹幕仅本人可见", img: "https://www.phprm.com/push/h5/static/avatar/danMu.png"};
         WebsitePusher.sendDanMu(sample);
+    }
+
+    // 复制代码块
+    function copyCode(btn) {
+        var body = btn.closest(".code-block").querySelector(".code-block-body");
+        var text = body.innerText;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function () {
+                var original = btn.innerHTML;
+                btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 已复制';
+                setTimeout(function () { btn.innerHTML = original; }, 2000);
+            });
+        } else {
+            var ta = document.createElement("textarea");
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            document.execCommand("copy"); document.body.removeChild(ta);
+            var original = btn.innerHTML;
+            btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 已复制';
+            setTimeout(function () { btn.innerHTML = original; }, 2000);
+        }
     }
 </script>
 </body>

@@ -6,7 +6,6 @@
     <title>AI弹幕组件-无后端集成 - WebsitePusher 公开 API 演示</title>
     <meta name="description" content="AI弹幕组件 - 一行代码为任意网站接入弹幕系统，支持AI自动弹幕、WebSocket实时推送、点赞交互，无需后端开箱可用。" />
     <link rel="stylesheet" type="text/css" href="static/css/barrager.css" />
-    <!-- pick-a-color 颜色选择器样式, 依赖 tinycolor(已由 danmu.js 加载) -->
     <link rel="stylesheet" type="text/css" href="static/pick-a-color/css/pick-a-color-1.2.3.min.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,7 +57,7 @@
             transition: all .15s;
             margin: 4px 6px 4px 0;
         }
-        .btn-primary { color: #fff; background-color: #667eea; border-color: #667eea; }
+        .btn-primary { color: #fff; background-color: #138496; border-color: #117a8b; }
         .btn-primary:hover { background-color: #5468d4; }
         .btn-warning { color: #fff; background-color: #f0ad4e; border-color: #f0ad4e; }
         .btn-warning:hover { background-color: #ec971f; }
@@ -80,32 +79,93 @@
         }
         .form-row input[type=checkbox] { margin-right: 4px; }
         .code-block {
-            background: #282c34;
-            color: #abb2bf;
-            padding: 16px;
-            border-radius: 6px;
+            background: #1e293b;
+            color: #a5f3a5;
+            border-radius: 12px;
             font-family: Consolas, Monaco, "Courier New", monospace;
-            font-size: 13px;
-            line-height: 1.7;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,.15);
+            margin: 12px 0;
+        }
+        .code-block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        .code-block-dots { display: flex; gap: 8px; }
+        .code-block-dots span {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+        }
+        .code-block-dots .dot-red { background: #ff5f56; }
+        .code-block-dots .dot-yellow { background: #ffbd2e; }
+        .code-block-dots .dot-green { background: #27c93f; }
+        .code-block-copy {
+            background: none; border: none; color: #94a3b8; cursor: pointer;
+            font-size: 12px; padding: 4px 8px; border-radius: 4px;
+            display: flex; align-items: center; gap: 4px;
+            transition: all .15s;
+        }
+        .code-block-copy:hover { background: #334155; color: #e2e8f0; }
+        .code-block-copy svg { width: 14px; height: 14px; fill: currentColor; }
+        .code-block-body {
+            padding: 16px;
             overflow-x: auto;
             white-space: pre;
+            background: #1e293b;
         }
-        .code-block .k { color: #c678dd; }
-        .code-block .s { color: #98c379; }
-        .code-block .c { color: #5c6370; font-style: italic; }
+        .code-block .k { color: #c084fc; }
+        .code-block .s { color: #86efac; }
+        .code-block .c { color: #64748b; font-style: italic; }
+        .code-block .n { color: #fbbf24; }
         .note {
-            background: #fff8e1;
-            border-left: 4px solid #ffc107;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
             padding: 10px 14px;
             margin: 12px 0;
             font-size: 13px;
-            color: #7d6608;
-            border-radius: 0 4px 4px 0;
+            color: #0d47a1;
+            border-radius: 0 6px 6px 0;
+            line-height: 1.7;
         }
-        .api-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+        .note code {
+            background: rgba(0,0,0,.05);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #0d47a1;
+        }
+        .tip {
+            background: #e8f4f8;
+            border-left: 4px solid #54949B;
+            padding: 10px 14px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #2c5e66;
+            border-radius: 0 6px 6px 0;
+            line-height: 1.7;
+        }
+        .tip code {
+            background: rgba(0,0,0,.05);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #2c5e66;
+        }
+        .api-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
         .api-table th { background: #f5f7fa; text-align: left; padding: 6px 10px; border: 1px solid #eee; }
         .api-table td { padding: 6px 10px; border: 1px solid #eee; }
-        .api-table code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; }
+        .api-table code  {
+            background: #f0f0f0;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 14px;
+            color: #d6336c;
+        }
         #status { display: inline-block; margin-left: 8px; font-size: 13px; color: #5cb85c; }
 
         /* ===== pick-a-color 颜色选择器样式(flex 布局, 三段自动等高) ===== */
@@ -211,11 +271,24 @@
             <div class="text-center">
                 <button class="btn btn-primary btn-lg" onclick="sendExample()">发送公开弹幕 ($.getJSON())</button>
             </div>
-            <div class="code-block"><span class="c">&lt;!-- 一行代码进行弹幕推送 --&gt;</span>
+            <div class="code-block">
+                <div class="code-block-header">
+                    <div class="code-block-dots">
+                        <span class="dot-red"></span>
+                        <span class="dot-yellow"></span>
+                        <span class="dot-green"></span>
+                    </div>
+                    <button class="code-block-copy" onclick="copyCode(this)">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        复制
+                    </button>
+                </div>
+                <div class="code-block-body"><span class="c">&lt;!-- 一行代码进行弹幕推送 --&gt;</span>
 $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a0269900809946903?head=这是第一条弹幕&avatar=https://www.phprm.com/push/h5/static/avatar/danMu.png");
 </div>
+            </div>
             <div class="note">
-                $.getJSON() 调用<code>trigger</code>接口将请求后端向云端写入一条弹幕记录，只有<code>head</code>参数必传，<code>avatar</code> 可不传. 缺省自动生成。
+                💡 提示：<code>$.getJSON()</code> 调用 <code>trigger</code> 接口将请求后端向云端写入一条弹幕记录，只有 <code>head</code> 参数必传，<code>avatar</code> 可不传，缺省自动生成。
             </div>
         </div>
 
@@ -307,9 +380,91 @@ $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a026990080
         <!-- 一行代码集成 -->
         <div class="section">
             <h2>一行代码集成（无后端）</h2>
-            <p class="lead">在你的网站任意页面引入下面这一行 <code>&lt;script&gt;</code>，<code>danmu.js</code> 会自动加载依赖并调用 <code>WebsitePusher.init()</code>弹幕插件：</p>
-            <div class="code-block"><span class="c">&lt;!-- 一行代码集成 AiDanMu 弹幕推送 --&gt;</span>
-&lt;script src=<span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=你的应用名用于数据统计&amp;channelCode=你的通道码&amp;danMu=1"</span>&gt;&lt;/script&gt;</div>
+            <p class="lead">在你的网站任意页面加入下面这段 <code>JavaScript</code>，动态创建 <code>&lt;script&gt;</code> 标签加载 <code>danmu.js</code>，它会自动加载依赖并初始化弹幕插件：</p>
+            <div class="code-block">
+                <div class="code-block-header">
+                    <div class="code-block-dots">
+                        <span class="dot-red"></span>
+                        <span class="dot-yellow"></span>
+                        <span class="dot-green"></span>
+                    </div>
+                    <button class="code-block-copy" onclick="copyCode(this)">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        复制
+                    </button>
+                </div>
+                <div class="code-block-body"><span class="c">&lt;!-- 一行 JS 集成 AI 弹幕 --&gt;</span>
+(<span class="k">function</span>() {
+    <span class="k">var</span> dm = document.createElement(<span class="s">"script"</span>);
+    dm.src = <span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=你的应用名用于数据统计&amp;channelCode=你的通道码&amp;hidePanel=1&amp;hideDialog=1&amp;danMu=1"</span>;
+    <span class="k">var</span> s = document.getElementsByTagName(<span class="s">"script"</span>)[<span class="n">0</span>];
+    s.parentNode.insertBefore(dm, s);
+})();</div>
+            </div>
+
+            <h3>手动初始化：websitePusherReady 事件</h3>
+            <p class="lead">默认情况下 <code>danmu.js</code> 会自动调用 <code>WebsitePusher.init()</code> 完成初始化。如果你需要 <strong>完全控制初始化时机</strong>（例如自定义更多参数、等待页面加载完成后再初始化），可以通过 <code>autoInit=0</code> 关闭自动初始化，然后监听 <code>websitePusherReady</code> 事件手动调用 <code>init()</code>。</p>
+
+            <h4>方式一：addEventListener 监听事件（推荐）</h4>
+            <div class="code-block">
+                <div class="code-block-header">
+                    <div class="code-block-dots">
+                        <span class="dot-red"></span>
+                        <span class="dot-yellow"></span>
+                        <span class="dot-green"></span>
+                    </div>
+                    <button class="code-block-copy" onclick="copyCode(this)">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        复制
+                    </button>
+                </div>
+                <div class="code-block-body"><span class="c">&lt;!-- 关闭自动初始化，等依赖加载完成后手动 init --&gt;</span>
+&lt;script src=<span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=你的应用名&amp;danMu=1&amp;autoInit=0"</span>&gt;&lt;/script&gt;
+&lt;script&gt;
+    document.addEventListener(<span class="s">'websitePusherReady'</span>, <span class="k">function</span>(e) {
+        <span class="k">var</span> WebsitePusher = e.detail.WebsitePusher;
+        WebsitePusher.init({
+            appName: <span class="s">'你的应用名'</span>,
+            channelCode: <span class="s">'你的通道码'</span>,
+            danMu: <span class="n">1</span>,
+            danMuSetting: {
+                aiDanMu: <span class="n">30</span>
+            }
+        });
+    });
+&lt;/script&gt;</div>
+            </div>
+
+            <h4>方式二：全局回调函数 onWebsitePusherReady</h4>
+            <p>兼容 IE 等不支持 <code>CustomEvent</code> 的浏览器，可通过全局回调函数接收 <code>WebsitePusher</code> 对象：</p>
+            <div class="code-block">
+                <div class="code-block-header">
+                    <div class="code-block-dots">
+                        <span class="dot-red"></span>
+                        <span class="dot-yellow"></span>
+                        <span class="dot-green"></span>
+                    </div>
+                    <button class="code-block-copy" onclick="copyCode(this)">
+                        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        复制
+                    </button>
+                </div>
+                <div class="code-block-body">&lt;script&gt;
+    <span class="k">window</span>.onWebsitePusherReady = <span class="k">function</span>(WebsitePusher) {
+        WebsitePusher.init({
+            appName: <span class="s">'你的应用名'</span>,
+            danMu: <span class="n">1</span>,
+            danMuSetting: { aiDanMu: <span class="n">30</span> }
+        });
+    };
+&lt;/script&gt;
+&lt;script src=<span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?autoInit=0"</span>&gt;&lt;/script&gt;</div>
+            </div>
+
+            <div class="tip">
+                <strong>提示：</strong><code>autoInit=0</code> 时 <code>danmu.js</code> 仅加载依赖资源，不执行初始化。依赖加载完成后会触发 <code>websitePusherReady</code> 事件并调用 <code>window.onWebsitePusherReady</code>，业务方可在回调中根据页面状态（如用户登录态、页面数据）灵活传入配置参数。
+            </div>
+
             <h3>WebsitePusher settings 详解</h3>
             <table class="api-table">
                 <tr><th>属性</th><th>说明</th></tr>
@@ -399,7 +554,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a026990080
     <script type="text/javascript">
         (function () {
             var dm = document.createElement("script");
-            dm.src = "static/js/danmu.js";
+            dm.src = "static/js/danmu.js?appName=AI弹幕&danMu=1&autoInit=0";
             var s = document.getElementsByTagName("script")[0];
             s.parentNode.insertBefore(dm, s);
         })();
@@ -538,14 +693,8 @@ $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a026990080
         }
     };
 
-    /* ============================================================
-     *  初始化入口
-     *  依赖(jquery/tinycolor/pusher.js 等)由 head 里的 danmu.js 异步加载,
-     *  window.onload 触发时上述依赖均已就绪:
-     *    1) 调用 WebsitePusher.init(settings) 初始化弹幕
-     *    2) 加载 pick-a-color 颜色选择器(依赖 jquery+tinycolor)并初始化
-     * ============================================================ */
-    window.onload = function () {
+    // 关闭自动初始化，等依赖加载完成后手动 init
+    document.addEventListener('websitePusherReady', function(e) {
         // 指定settings初始化弹幕
         WebsitePusher.init(settings);
         document.getElementById("status").textContent = "✓ WebsitePusher 已初始化";
@@ -556,7 +705,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a026990080
                 jQuery(".pick-a-color").pickAColor();
             }
         });
-    };
+    });
 
     /* ============================================================
      *  运行时控制: 通用 API 调用封装
@@ -581,6 +730,26 @@ $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a026990080
     // 快速体验: 直接调用后端 trigger 接口写入一条弹幕
     function sendExample() {
         $.getJSON("https://www.phprm.com/services/push/trigger/" + settings.channelCode + "?head=" + encodeURIComponent("这是第一条弹幕") + "&avatar=" + encodeURIComponent("https://www.phprm.com/push/h5/static/avatar/danMu.png"));
+    }
+
+    // 复制代码块
+    function copyCode(btn) {
+        var body = btn.closest(".code-block").querySelector(".code-block-body");
+        var text = body.innerText;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function () {
+                var original = btn.innerHTML;
+                btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 已复制';
+                setTimeout(function () { btn.innerHTML = original; }, 2000);
+            });
+        } else {
+            var ta = document.createElement("textarea");
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            document.execCommand("copy"); document.body.removeChild(ta);
+            var original = btn.innerHTML;
+            btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> 已复制';
+            setTimeout(function () { btn.innerHTML = original; }, 2000);
+        }
     }
 
     // 自定义弹幕: 先把表单里的外观参数通过 updateDanMu 写入配置, 再调用 trigger 发送
