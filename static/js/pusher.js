@@ -995,7 +995,8 @@ try {
                         $doc.find("#loading").hide();
                         $doc.find(".main-pusher").fadeIn(100);
                         // checkLoginStatus: init()传true检查登录态; 用户点"匿名推送"传false不自动跳转
-                        if (checkLoginStatus && !s.hidePanel) {
+                        // 弹幕模式下推送窗口不自动检查登录态(避免弹幕初始化时跳转登录窗口), 但unlogin打开的登录窗口仍需检查
+                        if (checkLoginStatus && !s.hidePanel && s.danMu != 1) {
                             _this.checkLoginStatus(doc, function (resp) {
                                 var data = resp.data;
                                 if (data && data["userInfo"]) {
@@ -1194,9 +1195,6 @@ try {
                 }
             },
             checkLoginStatus: function (doc, callback) {
-                if (this.settings.danMu == 1) {
-                    return;
-                }
                 var _this = this;
                 var $doc = $(doc);
                 $doc.find(".loginButton").text("登录账户");
@@ -1385,7 +1383,7 @@ try {
                 }
                 $.ajax({
                     url: s.channelMemberUrl,
-                    dataType: "jsonp",
+                    dataType: "json",
                     data: params,
                     success: function (resp) {
                         if (resp.code != 0) {
@@ -2904,7 +2902,7 @@ try {
                 // 6) 复位单例标志, 允许重新 init
                 _this._initedAppName = null;
                 _this._initGen = 0;
-            },
+            }
         };
         return WebsitePusher;
     })();

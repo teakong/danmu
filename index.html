@@ -284,7 +284,7 @@
                     </button>
                 </div>
                 <div class="code-block-body"><span class="c">&lt;!-- 一行代码进行弹幕推送 --&gt;</span>
-$.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a0269900809946903?head=这是第一条弹幕&avatar=https://www.phprm.com/push/h5/static/avatar/danMu.png");
+$.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296797c796?head=这是第一条弹幕&avatar=https://www.phprm.com/push/h5/static/avatar/danMu.png");
 </div>
             </div>
             <div class="note">
@@ -563,7 +563,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a026990080
     var settings = {
         appName: "AI弹幕",	 	// 必填
         danMu: 1,				// 弹幕传1
-        channelCode: "4d05f4abdb0a0c2a0269900809946903",
+        channelCode: "3db15cb9ff360873027019296797c796",
         hidePanel: 1,			// 是否隐藏默认面板
         hideDialog: 1,			// 是否隐藏默认对话窗口
         danMuSetting: {
@@ -573,7 +573,8 @@ $.getJSON("https://www.phprm.com/services/push/trigger/4d05f4abdb0a0c2a026990080
             speed: 18,          // 飞行秒数
             like: 1,            // 1=显示点赞按钮
             close: 0,           // 0=不显示关闭按钮(优先于 like)
-            color: "#fff"       // 文字颜色
+            color: "#fff",      // 文字颜色
+            aiDanMu: 60         // 默认开启AI弹幕60秒间隔轮询
         },
         danMuInitCallback: function (settings) {
             // 从 localStorage 读取弹幕开关状态: "0"=关闭(不创建socket), 其他=开启(默认开启)

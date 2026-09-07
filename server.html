@@ -198,7 +198,7 @@
                 </button>
             </div>
             <div class="code-block-body"><span class="c">&lt;!-- 将弹幕提交到后端审核通过后推送给所有人 --&gt;</span>
-$.getJSON("server.php", {type: "send", channelCode: "4d05f4abdb0a0c2a0269900809946903", head: "后端已审核弹幕推送给所有人可见"});
+$.getJSON("server.php", {type: "send", channelCode: "3db15cb9ff360873027019296797c796", head: "后端已审核弹幕推送给所有人可见"});
 </div>
         </div>
         <div class="note">
@@ -577,7 +577,7 @@ var settings = {
         cssSite: "static/css/",
         jsSite: "static/js",
         danMu: 1,
-        channelCode: "4d05f4abdb0a0c2a0269900809946903",
+        channelCode: "3db15cb9ff360873027019296797c796",
 		device: "81614",	                            // 指定业务后端注册用户唯一UID，将从channelMemberUrl自动换取uid
         hidePanel: 1,
         hideDialog: 1,
@@ -745,7 +745,7 @@ if($type == "checkAiDanMu") {
 <script type="text/javascript" src="static/syntaxhighlighter/scripts/shBrushPhp.js"></script>
 
 <!-- 可以预加载js资源和css文件后再进行init -->
-<script src="static/js/danmu.js?appName=AI弹幕&hideDialog=1&autoInit=0"></script>
+<script src="static/js/danmu.js?appName=AI弹幕&hideDialog=1&hidePanel=1&autoInit=0"></script>
 <script type="text/javascript">
     // 初始化 SyntaxHighlighter, 高亮 <pre class="brush: xxx"> 代码块
     SyntaxHighlighter.all();
@@ -823,9 +823,9 @@ if($type == "checkAiDanMu") {
         cssSite: "static/css/", // 为空将使用默认地址
         jsSite: "static/js",	// 为空将使用默认地址
         danMu: 1,				// 弹幕传1
-        channelCode: "4d05f4abdb0a0c2a0269900809946903",	// 未认证域名必传, 已认证域名可不传, 若指定将从指定通道监听和发送弹幕数据
+        channelCode: "3db15cb9ff360873027019296797c796",	// 未认证域名必传, 已认证域名可不传, 若指定将从指定通道监听和发送弹幕数据
 		device: "10086",	    // 指定业务后端注册用户唯一UID，将从channelMemberUrl自动换取uid, 头像请根据device自行映射头像和昵称
-        hidePanel: 0,			// 是否隐藏默认面板
+        hidePanel: 1,			// 是否隐藏默认面板
         hideDialog: 1,			// 是否隐藏默认对话窗口
         danMuSetting: {
             hideIcon: 0,        // 0=显示右下角浮窗图标
@@ -834,7 +834,8 @@ if($type == "checkAiDanMu") {
             speed: 18,          // 飞行秒数
             like: 1,            // 1=显示点赞按钮
             close: 0,           // 0=不显示关闭按钮(优先于 like)
-            color: "#fff"       // 文字颜色
+            color: "#fff",      // 文字颜色
+            aiDanMu: 60         // 默认开启AI弹幕60秒间隔轮询
         },
 		/**
 		 * 弹幕启动回调判断是否初始化弹幕
