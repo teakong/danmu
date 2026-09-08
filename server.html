@@ -977,7 +977,8 @@ if($type == "checkAiDanMu") {
                 var text = input.value.trim();
                 if (!text) return;
                 if (typeof WebsitePusher !== "undefined" && typeof WebsitePusher.sendDanMu === "function") {
-                    $.getJSON("https://www.phprm.com/services/push/trigger/" + settings.channelCode + "?head=" + encodeURIComponent(text) + "&avatar=" + encodeURIComponent(settings.avatar));
+                    // 不调用WebsitePusher.sendDanMu无法触发sendCallback, 理论上后端接受到弹幕不应该立即推送给所有人, 应当在管理员审核通过时通过trigger接口+写入redis推送给所有人
+                    WebsitePusher.sendDanMu({ info: "[前端未审核时仅本人可见]" + text, img: settings.avatar});
                 }
                 input.value = "";
                 input.focus();
