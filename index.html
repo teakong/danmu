@@ -554,7 +554,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
     <script type="text/javascript">
         (function () {
             var dm = document.createElement("script");
-            dm.src = "static/js/danmu.js?appName=AI弹幕&danMu=1&autoInit=0";
+            dm.src = "static/js/danmu.js?appName=AI弹幕&danMu=1&hidePanel=1&hideDialog=1&autoInit=0";
             var s = document.getElementsByTagName("script")[0];
             s.parentNode.insertBefore(dm, s);
         })();
@@ -607,7 +607,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
                 "transform:translateX(-50%)",
                 "bottom:20px",
                 "z-index:2147483647",
-                "width:500px",
+                "width:50%",
                 "padding:12px 14px",
                 "background:rgba(30,30,30,.5)",
                 "border-radius:10px",
@@ -652,7 +652,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
                 var text = input.value.trim();
                 if (!text) return;
                 if (typeof WebsitePusher !== "undefined" && typeof WebsitePusher.sendDanMu === "function") {
-                    WebsitePusher.sendDanMu({ info: text, img: settings.avatar});
+                    console.log({ info: text, img: settings.avatar});
                 }
                 input.value = "";
                 input.focus();
