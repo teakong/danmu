@@ -652,7 +652,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
                 var text = input.value.trim();
                 if (!text) return;
                 if (typeof WebsitePusher !== "undefined" && typeof WebsitePusher.sendDanMu === "function") {
-                    console.log({ info: text, img: settings.avatar});
+                    $.getJSON("https://www.phprm.com/services/push/trigger/" + settings.channelCode + "?head=" + encodeURIComponent(text) + "&avatar=" + encodeURIComponent(settings.avatar));
                 }
                 input.value = "";
                 input.focus();

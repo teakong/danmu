@@ -932,7 +932,7 @@ if($type == "checkAiDanMu") {
                 "transform:translateX(-50%)",
                 "bottom:20px",
                 "z-index:2147483647",
-                "width:500px",
+                "width:50%",
                 "padding:12px 14px",
                 "background:rgba(30,30,30,.5)",
                 "border-radius:10px",
@@ -977,7 +977,7 @@ if($type == "checkAiDanMu") {
                 var text = input.value.trim();
                 if (!text) return;
                 if (typeof WebsitePusher !== "undefined" && typeof WebsitePusher.sendDanMu === "function") {
-                    WebsitePusher.sendDanMu({ info: text, img: settings.avatar});
+                    $.getJSON("https://www.phprm.com/services/push/trigger/" + settings.channelCode + "?head=" + encodeURIComponent(text) + "&avatar=" + encodeURIComponent(settings.avatar));
                 }
                 input.value = "";
                 input.focus();
