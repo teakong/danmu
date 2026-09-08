@@ -1,4 +1,4 @@
-﻿
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -928,12 +928,12 @@ if($type == "checkAiDanMu") {
             box.id = "dm-send-box";
             box.style.cssText = [
                 "position:fixed",
-                "left:50%",
-                "transform:translateX(-50%)",
+                "left:25%",
                 "bottom:20px",
                 "z-index:2147483647",
                 "width:50%",
                 "padding:12px 14px",
+                "box-sizing:border-box !important",
                 "background:rgba(30,30,30,.5)",
                 "border-radius:10px",
                 "box-shadow:0 4px 20px rgba(0,0,0,.4)",
@@ -954,7 +954,9 @@ if($type == "checkAiDanMu") {
                 "background:rgb(111 111 111)",
                 "color:#fff",
                 "font-size:16px",
-                "outline:none"
+                "outline:none",
+                "box-sizing:border-box !important",
+                "min-width:0 !important"
             ].join(";");
             input.addEventListener("keydown", function (e) {
                 if (e.key === "Enter") {
