@@ -1947,9 +1947,8 @@ try {
                 }
                 // 3) 最后移除 DOM（避免清理过程中资源事件继续投递到已删除节点）
                 $("#pushWebAnonymous").remove();
-                // 4) 移除弹幕悬浮图标及其注入的 CSS 规则
+                // 4) 移除弹幕悬浮图标
                 $("#pushWebDanIcon").remove();
-                $("#pushWebDanIconStyle").remove();
                 // 5) 清除页面上所有滚动的弹幕
                 $(".barrage").remove();
                 // 6) 清空弹幕去重缓存(缓存挂在 settings 上, 因 danMuFilterCallback 内 this===settings),
@@ -2229,24 +2228,18 @@ try {
                 if ($("#pushWebDanIcon").length) {
                     return;
                 }
-                // 注入 CSS 规则(含 !important), 确保移动端 webview(微信/QQ等)下 position:fixed 不被
-                // 宿主页面的 * 通配符或 overflow 规则降级为 static/absolute 导致图标沉到文档底部
-                if (!document.getElementById("pushWebDanIconStyle")) {
-                    var iconStyle = document.createElement("style");
-                    iconStyle.id = "pushWebDanIconStyle";
-                    iconStyle.innerHTML =
-                        "#pushWebDanIcon{position:fixed!important;right:-2px!important;bottom:20px!important;" +
-                        "z-index:2147483647!important;width:57px!important;height:45px!important;" +
-                        "cursor:pointer!important;-webkit-transform:translateZ(0)!important;" +
-                        "transform:translateZ(0)!important;}";
-                    document.head.appendChild(iconStyle);
-                }
                 var icon = document.createElement("div");
                 icon.id = "pushWebDanIcon";
                 // 外层透明容器扩大 hover 区域，覆盖 dan.png(37x25) 和 4.gif(右上角外延20px)
-                // right:-2 bottom:20 width:57 height:45 保持 dan.png 和 4.gif 视觉位置与之前一致
+                // bottom:20 width:57 height:45 保持 dan.png 和 4.gif 视觉位置与之前一致
+                // 定位用 left:100% + margin-left:-55px 而非 right:-2px:
+                //   移动端窄屏下宿主页面(宽表格/宽代码块)会把文档撑出水平溢出, 部分 webview(微信/QQ等)
+                //   对 position:fixed 元素的 right 定位会参照溢出文档右边缘而非视觉视口, 导致图标被甩到
+                //   文档右下角(需滚动才可见); left 定位始终相对视觉视口(与左下角正常悬浮的图标同族),
+                //   left:100% 即容器左边缘对齐视口右边缘, 再左移55px(露出55px, 右边缘超出2px),
+                //   视觉与原 right:-2px 完全等价, 且桌面/移动端表现一致。
                 icon.style.cssText =
-                    "position:fixed; right:-2px; bottom:20px; z-index:2147483647; width:57px; height:45px; cursor:pointer;-webkit-transform:translateZ(0);transform:translateZ(0);";
+                    "position:fixed; left:100%; margin-left:-55px; bottom:20px; z-index:2147483647; width:57px; height:45px; cursor:pointer;";
                 // dan.png 背景放在内层 div，定位在容器右下角；4.gif 在容器右上角
                 icon.innerHTML =
                     '<div class="dan-icon-img" style="position:absolute; right:20px; top:20px; width:37px; height:25px; background:url(' +
@@ -2892,7 +2885,6 @@ try {
                 // 3) 移除弹幕相关 DOM
                 $("#pushWebAnonymous").remove();
                 $("#pushWebDanIcon").remove();
-                $("#pushWebDanIconStyle").remove();
                 $("#pushWebDanMuHideStyle").remove();
                 $("#pushWebDanMuAreaStyle").remove();
                 $("#pushWebDanMuArea").remove();

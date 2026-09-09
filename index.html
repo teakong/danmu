@@ -246,6 +246,17 @@
         .footer-copy { font-size: 13px; line-height: 1.8; }
         .footer-copy a { color: #ddd; text-decoration: none; }
         .footer-copy a:hover { color: #fff; }
+        /* ===== 移动端防水平溢出: 宽表格/代码块在自身区域内横向滚动, 避免把页面撑宽 =====
+           手机窄屏下长表格(字段名/URL不换行)会把文档撑出横向滚动, 部分 webview(微信/QQ)下
+           会使 position:fixed 悬浮元素的锚点偏移/沉底。让宽元素内部自滚 + body 兜底隐藏横向溢出 */
+        @media (max-width: 768px) {
+            body { overflow-x: hidden; }
+            .api-table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
     </style>
 </head>
 <body>
@@ -606,7 +617,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
                 "left:25%",
                 "bottom:20px",
                 "z-index:2147483647",
-                "width:50%",
+                "width:70%",
                 "padding:12px 14px",
                 "box-sizing:border-box !important",
                 "background:rgba(30,30,30,.5)",

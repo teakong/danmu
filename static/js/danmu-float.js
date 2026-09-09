@@ -72,7 +72,7 @@
             ".dm-float-wrap { position: fixed; left: 16px; bottom: 16px; z-index: 2147483646; display: flex; flex-direction: column; align-items: flex-start; }",
             ".dm-float-icons { display: flex; gap: 8px; }",
             ".dm-float-btn {",
-            "  width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;",
+            "  width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;",
             "  background: none;",
             "  display: flex; align-items: center; justify-content: center;",
             "  transition: transform .15s, opacity .2s;",

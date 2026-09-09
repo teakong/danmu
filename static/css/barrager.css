@@ -14,9 +14,10 @@
 /* ===== 点赞❤图标(25x25 圆形) =====
    触发规则: 只有❤/数字自身hover才变红, hover弹幕文字不变色 */
 .barrage_box .like{visibility:hidden;opacity:0;text-align:center;width:25px;height:25px;margin-left:20px;border-radius:50%;background:rgba(255,255,255,.1) center/18px 18px no-repeat;margin-top:8px;background-image:url(images/heart_default.svg);cursor:pointer;}
-/* 1) num=0 无has-num: 常态透明占位(visibility不能为hidden,否则区域无法hover), 自身hover才显示红色空心❤ */
+/* 1) num=0 无has-num: 弹幕滚动时隐藏(透明但保留占位以接收hover), 不显示数字;
+      鼠标悬停到弹幕行时才浮现白色空心❤(heart_default.svg 继承自 .like), 提示可点赞 */
 .barrage_box .like:not(.has-num){visibility:visible;opacity:0;}
-.barrage_box .like:not(.has-num):hover{opacity:1;background-image:url(images/heart_hover.svg);}
+.barrage_box:hover .like:not(.has-num){opacity:1;}
 /* 2) has-num: 常态白色空心❤+白色数字, 仅自身hover变红色空心❤/红色数字 */
 .barrage_box .like.has-num{visibility:visible;opacity:1;}
 .barrage_box .like.has-num:hover{background-image:url(images/heart_hover.svg);}
