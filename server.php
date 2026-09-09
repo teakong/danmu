@@ -299,6 +299,8 @@ if($type == "init") {
 }else if($type == "send") {
     // 业务后端接受到弹幕后，可以推送弹幕并使用redis缓存messageIdList，也可以审核通过后推送给所有人
     $channelCode = isset($_GET["channelCode"]) ? $_GET["channelCode"] : "";
+    // bizId应该是文章ID, 不是评论ID, 可在filter中判断消息缓存redis中存的bizId和参数bizId是否一致
+    $bizId = isset($_GET["bizId"]) ? $_GET["bizId"] : 1;
 
     // 业务方可根据$head按自己的敏感词库进行过滤，如果内容触发敏感可立即返回
     $head = isset($_GET["head"]) ? $_GET["head"] : "";
@@ -321,11 +323,11 @@ if($type == "init") {
     $nonce = md5(time());
     $rawText = "${timestamp}#${signSecret}#${nonce}";
     $sign = md5($rawText);
-    // 调用推送API（延迟5秒后才推送到弹幕，防止用户本地弹幕还未建立连接成功就发送弹幕）, 还需注意自动创建的弹幕通道是否开启了签名: http://push.phprm.com/api.html#sign
+    // 调用推送API（延迟1秒后才推送到弹幕，防止用户本地弹幕还未建立连接成功就发送弹幕）, 还需注意自动创建的弹幕通道是否开启了签名: http://push.phprm.com/api.html#sign
     $time = explode(" ", microtime());
     $url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
     // head为弹幕内容, 200字以内, 如果是公告类型弹幕不要传url参数，传body=公告markdown文档
-    $nextUrl = "http://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=5000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($head). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
+    $nextUrl = "http://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=1000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($head). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
     $json = file_get_contents($nextUrl);
     $jsonObject = json_decode($json, true);
 
@@ -340,7 +342,7 @@ if($type == "init") {
 
     // 共享模式: 后面的所有消息公开可见, 发送完公开信需要存redis: $kv -> set($redisPrefix . "messageId:". $messageId, "1", 600);缓存起来到filter里验证是否由本系统触发
     foreach($jsonObject["data"]["messageIdList"] as $messageId) {
-        $kv -> set($redisPrefix . "messageId:". $messageId, $channelCode, 600);
+        $kv -> set($redisPrefix . "messageId:". $messageId, $bizId, 600);
     }
 
     // 前端将messageIdList加入this.settings.messageIdList跳过filter过滤, 不是当前用户触发的弹幕不会展示

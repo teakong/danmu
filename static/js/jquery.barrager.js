@@ -167,18 +167,25 @@
 
 		div_barrager.css("margin-right", 0);
 
-		$(id).animate({ right: this_width }, barrage.speed * 1000, function () {
-			$(id).remove();
-		});
+		// 弹幕飞出动画的启动/恢复共用入口: 元素已移除或正在动画中时直接跳过, 避免重复排队
+		// (桌面端鼠标悬停会 stop 暂停, 移出后由此恢复; 移动端点赞后也由此自动恢复)
+		var flyAway = function () {
+			var $el = $(id);
+			if (!document.getElementById(barrager_id)) return;
+			if ($el.is(":animated")) return;
+			$el.animate({ right: this_width }, barrage.speed * 1000, function () {
+				$(id).remove();
+			});
+		};
+		flyAway();
 
+		// 悬停暂停: 桌面端鼠标移入弹幕时冻结在当前位置, 移出后继续飞行
 		div_barrager_box.mouseover(function () {
 			$(id).stop(true);
 		});
 
 		div_barrager_box.mouseout(function () {
-			$(id).animate({ right: this_width }, barrage.speed * 1000, function () {
-				$(id).remove();
-			});
+			flyAway();
 		});
 		if (barrage.close) {
 			$(id + ".barrage .barrage_box .close").click(function () {
@@ -189,6 +196,14 @@
 				}
 			});
 		} else if (barrage.like) {
+			// 移动端触屏标记: 点击❤时浏览器会先派发合成 mouseover(悬停暂停逻辑会冻结弹幕),
+			// 但手指抬起后保持粘性 hover、不再派发 mouseout, 弹幕就一直卡住(需点击屏幕其他
+			// 区域触发 mouseout 才恢复)。用 touchstart 记录本次交互来自触屏, toggleLike
+			// 处理完成后自动恢复飞行。
+			var touchUsed = false;
+			div_barrager_box.on("touchstart", function () {
+				touchUsed = true;
+			});
 			var toggleLike = function () {
 				var $like = $(id + ".barrage .barrage_box .like");
 				var $num = $(id + ".barrage .barrage_box .num");
@@ -231,6 +246,12 @@
 						barrage,
 						liked ? "unlike" : "like",
 					);
+				}
+				// 触屏点赞/取消点赞后弹幕自动继续飞行; 桌面端鼠标仍悬停在弹幕上,
+				// 保持暂停状态, 待 mouseout 时再恢复
+				if (touchUsed) {
+					touchUsed = false;
+					flyAway();
 				}
 			};
 			// ❤图标 和 数字 均为点击触发区

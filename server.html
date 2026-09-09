@@ -198,7 +198,7 @@
                 </button>
             </div>
             <div class="code-block-body"><span class="c">&lt;!-- 将弹幕提交到后端审核通过后推送给所有人 --&gt;</span>
-$.getJSON("server.php", {type: "send", channelCode: "3db15cb9ff360873027019296797c796", head: "后端已审核弹幕推送给所有人可见"});
+$.getJSON("server.php", {type: "send", channelCode: "3db15cb9ff360873027019296797c796", head: "后端已审核弹幕推送给所有人可见", bizId: 1});
 </div>
         </div>
         <div class="note">
@@ -272,11 +272,11 @@ if($type == "send") {
     $nonce = md5(time());
     $rawText = "${timestamp}#${signSecret}#${nonce}";
     $sign = md5($rawText);
-    // 调用推送API（延迟5秒后才推送到弹幕，防止用户本地弹幕还未建立连接成功就发送弹幕）, 还需注意自动创建的弹幕通道是否开启了签名: http://push.phprm.com/api.html#sign
+    // 调用推送API（延迟1秒后才推送到弹幕，防止用户本地弹幕还未建立连接成功就发送弹幕）, 还需注意自动创建的弹幕通道是否开启了签名: http://push.phprm.com/api.html#sign
     $time = explode(" ", microtime());
     $url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
     // head为弹幕内容, 200字以内, 如果是公告类型弹幕不要传url参数，传body=公告markdown文档
-    $nextUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=5000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($head). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
+    $nextUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=1000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($head). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
     $json = file_get_contents($nextUrl);
     $jsonObject = json_decode($json, true);
 
@@ -371,129 +371,6 @@ if($type == "filter") {
 
 }
 </pre>
-            </section>
-
-            <section id="init" class="bb-section">
-                <h4> 捕获用户初始化弹幕事件（danMuInitCallback） </h4>
-                回调事件API之弹幕启动回调，该事件触发在用户连接弹幕云端服务成功后仅回调一次。 <br/>
-                浏览器前端 <br/>
-                <pre class="brush: js">
-/**
- * 弹幕启动回调判断是否初始化弹幕
- */
-danMuInitCallback: function (settings) {
-    var _this = this;
-    // 这里在后端调用send API, 当设置return false即使用户配置和url参数开启弹幕依然无法启用弹幕
-    console && console.log("danMuInitCallback settings:", settings);
-    var randomUserId = Math.round(Math.round(Math.random() * 100000) / 1000);
-    console && console.log("randomUserId", randomUserId);
-    if (settings.channelCode) {
-        $.getJSON('https://ws.phprm.com/api/server.php', {type: 'init', channelCode: settings.channelCode, bizId: "1", url: window.location.href, nickname: "测试用户"+randomUserId}, function(resp) {
-            if(resp.code != 0 || ! resp.data){
-                return;
-            }
-            var resultMap = resp.data;
-            console && console.log(resultMap);
-            var messageIdList = resp.data["messageIdList"] || [];
-            if (messageIdList) {
-                // 加入_this.messageIdList.push将跳过filter检测
-                for(var i=0; i < resp.data["messageIdList"].length; i++) {
-                    settings.messageIdList.push(resp.data["messageIdList"][i]);
-                }
-            }
-        });
-    }
-    // danMuInitCallback必须return true才能正常初始化弹幕, return false前建议调用WebsitePusher.destroy()(业务方自行存取弹幕开关配置在这里return true/false)
-    return true;
-}
-</pre>
-                server 端 (php)
-                <pre class="brush: php">
-if($type == "init") {
-
-	// 启动时可以将业务id和channelCode进行一对一绑定
-	$bizId = isset($_GET["bizId"]) ? $_GET["bizId"] : "";
-	$channelCode = isset($_GET["channelCode"]) ? $_GET["channelCode"] : "";
-	$nickname = isset($_GET["nickname"]) ? $_GET["nickname"] : "你";
-
-	if(empty($channelCode)) {
-		$resultModel["code"] = -1;
-		$resultModel["message"] = "通道码不正确";
-		echo cross_domain(json_encode($resultModel));
-		exit();
-	}
-	// 可以给弹幕带上自定义链接, 但需要满足每30秒内只有一个带连接的url, 这里加上随机数可以跳过限制
-	$url = isset($_GET["url"]) ? $_GET["url"] : $_SERVER["HTTP_REFERER"];
-
-	// 自定义发布人头像和欢迎语
-	$avatar = "https://www.phprm.com/push/h5/static/avatar/danMu.png";
-
-	// 查询数据库中的评论放到线程池中逐条通过推送API发布
-	$bizCacheJson = $kv -> get($redisPrefix . "biz:". $bizId);
-	if(empty($bizCacheJson)) {
-		$ready = array(
-			"bizId" => $bizId,
-			"likeCount" => 99
-		);
-	} else {
-		$ready = json_decode($bizCacheJson, true);
-	}
-
-	// 弹幕通道已经使用预设通道码加签, 需要额外传timestamp、nonce、sign三个参数, $signSecret请查看http://push.phprm.com/config.html
-	$signSecret = "3f506231f2bbdd44026990080d430abe";
-	$timestamp = getMillisecond();
-	$nonce = md5(time());
-	$rawText = "${timestamp}#${signSecret}#${nonce}";
-	$sign = md5($rawText);
-
-	// 独享模式: 仅当前用户可见, 发送完私信不存redis, 让前端存messageIdList缓存
-	$time = explode(" ", microtime());
-	$url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
-	$sendUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=5000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($nickname.", 你有一条私信仅自己可见"). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
-	$json = file_get_contents($sendUrl);
-	$jsonObject = json_decode($json, true);
-
-	// 返回给前端的白名单消息ID
-	$messageIdList = empty($jsonObject["data"]["messageIdList"]) ? array() : $jsonObject["data"]["messageIdList"];
-
-
-	$timestamp = getMillisecond();
-	$nonce = md5(time());
-	$rawText = "${timestamp}#${signSecret}#${nonce}";
-	$sign = md5($rawText);
-	// 调用推送API（延迟5秒后才推送到弹幕，防止用户本地弹幕还未建立连接成功就发送弹幕）, 还需注意自动创建的弹幕通道是否开启了签名: http://push.phprm.com/api.html#sign
-	$time = explode(" ", microtime());
-	$url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
-	$nextUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=5000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode("大家欢迎".$nickname.", 一大波弹幕来袭"). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
-	$json = file_get_contents($nextUrl);
-	$jsonObject = json_decode($json, true);
-
-	if(empty($jsonObject) || empty($jsonObject["data"]["messageIdList"])) {
-		// 公开弹幕推送失败
-		$resultModel["code"] = -1;
-		$resultModel["message"] = "公开弹幕推送失败";
-		$resultModel["data"] = $json;
-		echo cross_domain(json_encode($resultModel));
-		exit();
-	}
-
-	// 共享模式: 后面的所有消息公开可见, 发送完公开信需要存redis: $kv -> set($redisPrefix . "messageId:". $messageId, "1", 600);缓存起来到filter里验证是否由本系统触发
-	foreach($jsonObject["data"]["messageIdList"] as $messageId) {
-		// 存什么不重要, 重要的是type=filter能校验通过, bizId可以存这里, 后端可以在filter里从messageId缓存读出关联的bizId
-		$kv -> set($redisPrefix . "messageId:". $messageId, $bizId, 600);
-	}
-
-	// 可选: 缓存每个业务的点赞数(仅用于示例filer查询到点赞数)
-	$kv -> set($redisPrefix . "biz:". $ready["bizId"], json_encode($ready), 86400);
-
-	// 前端将messageIdList加入this.settings.messageIdList跳过filter过滤, 不是当前用户触发的弹幕不会展示
-	$resultModel["data"] = array("messageIdList" => $messageIdList);
-	echo cross_domain(json_encode($resultModel));
-    exit();
-
-}
-</pre>
-
             </section>
 
             <section id="pop" class="bb-section">
@@ -905,7 +782,7 @@ if($type == "checkAiDanMu") {
         sendCallback: function (item, settings) {
             // sendDanMu 仅本地滚动, 这里异步请求后端 trigger 接口不审核直接推送给其他人
             console && console.log("sendCallback", item);
-            $.getJSON('https://ws.phprm.com/api/server.php', {type: 'send', channelCode: settings.channelCode, head: "后端已审核弹幕推送给所有人可见", url: window.location.href}, function(resp) {
+            $.getJSON('https://ws.phprm.com/api/server.php', {type: 'send', channelCode: settings.channelCode, bizId: 1, head: "后端已审核弹幕推送给所有人可见", url: window.location.href}, function(resp) {
                 if(resp.code != 0 || ! resp.data){
                     return;
                 }
