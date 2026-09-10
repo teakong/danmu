@@ -541,19 +541,20 @@ if($type == "checkAiDanMu") {
 	}
 
 	// 业务执行: 这里可以拿着$title去请求AI接口, 拿到返回值拼接成head调用推送API
-	$aiUrl = "https://api.moonshot.cn/anthropic/v1/messages";
-	$aiUrl = "https://api.deepseek.com/";
+    $aiUrl = "https://api.moonshot.cn/anthropic/v1/messages";
+    $aiUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+    $aiUrl = "https://api.deepseek.com/chat/completions";
 	//$chatResult = requestAI($aiUrl, 'sk-fake', 'kimi-k3');
-	$chatResult = requestAI($aiUrl, 'sk-fake', 'deepseek-v4-flash');
+    // 填写你的deepseek API key, 速度最快推荐使用deepseek-v4-flash, 费率最低推荐使用千问百炼大模型: qwen3.8-flash
+	$chatResult = requestAI($aiUrl, '', 'deepseek-v4-flash');
 
 
 	// 降级为其他弹幕内容
-	$head = "你正访问的网页标题是: ".$_GET["title"];
-	if (!empty($chatResult['choices'][0]['message']['content']) || !empty($chatResult['choices'][0]['message']['reasoning_content'])) {
-		$answer = !empty($chatResult['choices'][0]['message']['content']) ? trim($chatResult['choices'][0]['message']['content']) : trim($chatResult['choices'][0]['message']['reasoning_content']);
-		// 设置缓存
-		$head = empty($answer) ? "AI响应数据异常" : $answer;
-	}
+    $head = "你正访问的网页标题是: ".$_GET["title"];
+    if (!empty($chatResult['choices'][0]['message']['content'])) {
+        $answer = trim($chatResult['choices'][0]['message']['content']);
+        $head = $answer;
+    }
 	// 自定义发布人头像
 	$avatar = "https://www.phprm.com/push/h5/static/avatar/danMu.png";
 

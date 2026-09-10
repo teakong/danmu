@@ -55,6 +55,8 @@
  *
  * 持久化：
  *   appKey       服务端鉴权契约，随 withCredentials 发送，勿改名
+ *   deviceId     访客设备标识（localStorage+长期cookie双写，key=pusher_device_id；
+ *               首次由Fingerprint2生成后固化复用, 浏览器升级/UA变化不再重算, 避免被识别为新设备）
  *   danMuConfig  弹幕表单配置 JSON（localStorage，key=pusher_danmu_config，客户端；
  *               localStorage不可用时自动回退cookie, 兼容IE6/7及file://等异常环境）
  *
@@ -640,6 +642,17 @@ try {
                     }
                     return;
                 }
+                // 优先复用已持久化的设备ID: 浏览器升级会改变UA版本号/插件等指纹组件,
+                // 实时重算 Fingerprint2 必然得到新ID; 首次生成后固化到 localStorage+cookie,
+                // 之后直接复用, 不再重算, 浏览器升级/重装插件均不影响 (仅清缓存等极端场景才回退指纹)
+                var persistedDevice = _this.getStoredDeviceId();
+                if (persistedDevice) {
+                    s.device = persistedDevice;
+                    if (callback) {
+                        callback();
+                    }
+                    return;
+                }
                 if (typeof Fingerprint2 === "undefined") {
                     this.parallelLoadScripts(
                         [s.jsSite + "/fingerprint2.min.js"],
@@ -653,6 +666,22 @@ try {
             },
             updateSettingDevice: function (callback) {
                 var _this = this;
+                var finish = function (deviceId) {
+                    // 首次生成后立即双写固化(localStorage+cookie), 此后 initSetting 直接读存储, 不再重算
+                    _this.setStoredDeviceId(deviceId);
+                    _this.settings.device = deviceId;
+                    if (callback) {
+                        callback();
+                    }
+                };
+                // fingerprint2.min.js 加载失败等异常场景: 本地随机ID兜底, 同样持久化, 不影响后续流程
+                if (
+                    typeof Fingerprint2 === "undefined" ||
+                    typeof Fingerprint2.get !== "function"
+                ) {
+                    finish(_this.genLocalDeviceId());
+                    return;
+                }
                 Fingerprint2.get(function (components) {
                     var values = components.map(function (component, index) {
                         if (index === 0) {
@@ -660,10 +689,7 @@ try {
                         }
                         return component.value;
                     });
-                    _this.settings.device = Fingerprint2.x64hash128(values.join(""), 31);
-                    if (callback) {
-                        callback();
-                    }
+                    finish(Fingerprint2.x64hash128(values.join(""), 31));
                 });
             },
             getUrlParam: function (name) {
@@ -2788,6 +2814,47 @@ try {
                     }
                 } catch (e) {}
                 this.cookieSet(this.DK, "", -1);
+            },
+            DEK: "pusher_device_id",
+            /* 设备ID持久化: localStorage 优先 + 长期cookie(约10年)兜底,
+               浏览器升级改变UA/插件等指纹组件时仍复用首次固化的ID, 不会被服务端识别为新设备 */
+            getStoredDeviceId: function () {
+                var id = "";
+                try {
+                    if (window.localStorage) {
+                        id = window.localStorage.getItem(this.DEK) || "";
+                    }
+                } catch (e) {}
+                if (!id) {
+                    id = this.cookieGet(this.DEK);
+                }
+                if (id) {
+                    // cookie 命中(如 localStorage 被清理)时回写自愈, 之后优先走 localStorage
+                    try {
+                        if (window.localStorage) {
+                            window.localStorage.setItem(this.DEK, id);
+                        }
+                    } catch (e) {}
+                }
+                return id;
+            },
+            setStoredDeviceId: function (id) {
+                try {
+                    if (window.localStorage) {
+                        window.localStorage.setItem(this.DEK, id);
+                    }
+                } catch (e) {}
+                // cookie 双写: localStorage 被隐私工具清理等场景下仍可恢复设备ID
+                this.cookieSet(this.DEK, id, 3650);
+            },
+            genLocalDeviceId: function () {
+                // Fingerprint2 不可用时的本地随机兜底, 32位小写hex, 与 x64hash128 输出格式保持一致
+                var hex = "0123456789abcdef";
+                var id = "";
+                for (var i = 0; i < 32; i++) {
+                    id += hex.charAt(Math.floor(Math.random() * 16));
+                }
+                return id;
             },
             cookieGet: function (name) {
                 var prefix = name + "=";
