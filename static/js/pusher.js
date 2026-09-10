@@ -1263,7 +1263,7 @@ try {
                         rel: "stylesheet",
                         href: _this.settings.jsSite + "/layer/theme/default/layer.css",
                     }).appendTo("head");
-                    seriesLoadPusherScripts(
+                    _this.parallelLoadScripts(
                         [
                             _this.settings.jsSite + "/layui/layui.min.js",
                             _this.settings.jsSite + "/layui/lay/modules/layer.js",
