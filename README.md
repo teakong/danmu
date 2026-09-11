@@ -10,6 +10,19 @@
 | [后端过滤系统](https://teakong.github.io/danmu/server.html) | `https://teakong.github.io/danmu/server.html` | 后端审核 + Redis 缓存 + 注册用户推送 |
 | [最简集成](https://teakong.github.io/danmu/simple.html) | `https://teakong.github.io/danmu/simple.html` | 一行 script 标签集成示例 |
 
+## 业务 Demo
+
+> 展示组件在实际业务系统中的接入效果，可直接访问体验。
+
+| Demo | 地址 | 说明 |
+| ---- | ---- | ---- |
+| [小纸条信箱](https://head.phprm.com/api/) | `https://head.phprm.com/api/` | 匿名弹幕留言信箱。使用 AI 弹幕组件读取 DOM 节点上的留言数据，发送给 AI 大模型自动生成弹幕，支持弹幕与留言系统相互打通。 |
+
+**接入亮点：**
+- **匿名留言**：用户无需注册即可留下小纸条
+- **AI 自动弹幕**：弹幕组件读取留言 DOM 节点，调用 AI 大模型生成自然弹幕飞过屏幕
+- **弹幕 ↔ 留言打通**：弹幕与留言系统双向联动，留言实时转化为弹幕
+
 ## 代码仓库
 
 | 平台 | 地址 | 说明 |

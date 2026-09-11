@@ -257,6 +257,76 @@
                 -webkit-overflow-scrolling: touch;
             }
         }
+        /* ===== 业务 Demo 展示卡片 ===== */
+        .demo-card {
+            background: linear-gradient(135deg, #54949B 0%, #3a6b72 100%);
+            color: #fff;
+            border-radius: 12px;
+            padding: 28px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            box-shadow: 0 4px 16px rgba(84, 148, 155, .35);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .demo-card .demo-info { flex: 1; min-width: 260px; }
+        .demo-card .demo-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, .2);
+            border-radius: 12px;
+            padding: 3px 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        .demo-card h2 {
+            font-size: 22px;
+            margin: 0 0 8px;
+            border: none;
+            padding: 0;
+        }
+        .demo-card p {
+            font-size: 14px;
+            opacity: .92;
+            line-height: 1.7;
+            margin: 0 0 6px;
+        }
+        .demo-card .demo-features {
+            margin-top: 10px;
+            font-size: 13px;
+            opacity: .85;
+        }
+        .demo-card .demo-features span {
+            display: inline-block;
+            background: rgba(255, 255, 255, .15);
+            border-radius: 4px;
+            padding: 2px 10px;
+            margin: 3px 6px 3px 0;
+        }
+        .demo-card .demo-action { flex-shrink: 0; }
+        .demo-card .btn-demo {
+            background: #fff;
+            color: #3a6b72;
+            border: none;
+            font-weight: 600;
+            padding: 12px 26px;
+            font-size: 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform .15s, box-shadow .15s;
+            white-space: nowrap;
+        }
+        .demo-card .btn-demo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .2);
+        }
+        @media (max-width: 600px) {
+            .demo-card { padding: 20px; }
+            .demo-card .demo-action { width: 100%; text-align: center; }
+            .demo-card .btn-demo { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -271,10 +341,28 @@
     <div class="nav-bar">
         <a href="index.html" class="active">无后端集成</a>
         <a href="server.html">后端过滤系统</a>
-        <a href="simple.html">最简集成</a>
+        <a href="simple.html" target="_blank">最简集成</a>
     </div>
 
     <div class="container">
+        <!-- 业务 Demo 展示 -->
+        <a class="demo-card" href="https://head.phprm.com/api/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:flex;">
+            <div class="demo-info">
+                <span class="demo-tag">业务 Demo</span>
+                <h2>小纸条信箱 · 匿名弹幕留言</h2>
+                <p>一个匿名留言信箱应用，使用 AI 弹幕组件读取 DOM 节点上的留言数据，发送给 AI 大模型自动生成弹幕，实现弹幕与留言系统相互打通。</p>
+                <div class="demo-features">
+                    <span>📨 匿名留言</span>
+                    <span>🤖 AI 自动弹幕</span>
+                    <span>💬 弹幕 ↔ 留言打通</span>
+                    <span>📱 移动端适配</span>
+                </div>
+            </div>
+            <div class="demo-action">
+                <span class="btn-demo">访问 Demo →</span>
+            </div>
+        </a>
+
         <!-- 快速体验 -->
         <div class="section">
             <h2>快速体验 <span id="status"></span></h2>
