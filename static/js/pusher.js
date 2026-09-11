@@ -400,7 +400,7 @@ try {
                 cssSite: site + "customer/css/",
                 jsSite: site + "customer/js",
                 pcUrl: "https://ws.phprm.com/pc.html",
-                pushUrl: "http://push.phprm.com/",
+                pushUrl: "https://push.phprm.com/",
                 apiUrl: "https://www.phprm.com/push/h5/app/api/getDataInfo",
                 authUrl: "https://www.phprm.com/oauth2",
                 wsUrl: "https://2120ws.phprm.com",
@@ -1609,31 +1609,11 @@ try {
                     var textLen = cache.textLen;
                     try {
                         var message = JSON.parse(msg);
-                        var chatJson = null;
-                        try {
-                            chatJson = JSON.parse(message.content);
-                        } catch (ex) {}
-                        if (chatJson && chatJson["fromId"] && chatJson["toId"]) {
-                            var title = _this.cutText(chatJson.content, Math.ceil(textLen));
-                            // 目前匿名用户发送的消息不存在url
-                            _this.buildBarragerItem(
-                                chatJson.messageId
-                                    ? chatJson.messageId
-                                    : chatJson.messagePushId,
-                                chatJson.fromAvatar,
-                                title,
-                                null,
-                                cfg,
-                                bottomradio
-                            );
-                            return;
-                        }
-                        var title = _this.cutText(
-                            _this.subByString(message.content, "✉️&nbsp;", "&nbsp;🕒"),
-                            Math.ceil(textLen),
-                        );
+                        var title = _this.cutText(message.head, Math.ceil(textLen));
                         _this.buildBarragerItem(
-                            message.messageId,
+                            message.messageId
+                                ? message.messageId
+                                : message.messagePushId,
                             message.avatar,
                             title,
                             message.url,
@@ -1746,29 +1726,6 @@ try {
                     return true;
                 }
                 return false;
-            },
-            subByString: function (haystack) {
-                var left = "undefined" != typeof arguments[1] ? arguments[1] : "";
-                var right = "undefined" != typeof arguments[2] ? arguments[2] : "";
-                var left_pos = false;
-                var right_pos = false;
-                if (left == "" || (left_pos = haystack.indexOf(left)) === -1) {
-                    var start_pos = 0;
-                } else {
-                    var start_pos = left_pos;
-                }
-                var right_data = haystack.substr(
-                    start_pos + (left_pos === false ? 0 : left.length),
-                );
-                if (right == "" || (right_pos = right_data.indexOf(right)) === -1) {
-                    return haystack.substr(left_pos === -1 ? 0 : left_pos + left.length);
-                } else {
-                    var end_pos = start_pos + right_pos;
-                    return haystack.substr(
-                        left_pos === -1 ? 0 : left_pos + left.length,
-                        end_pos - start_pos,
-                    );
-                }
             },
             pad2: function (n) {
                 return n < 10 ? "0" + n : "" + n;
