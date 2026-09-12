@@ -1590,9 +1590,9 @@ try {
                 var cfg = _this.getDanMuConfig();
                 _this.updateCfgCache(cfg);
                 so.on("connect", function () {
-                    so.emit("login", params.token);
+                    so.emit("danMuLogin", params.token);
                 });
-                so.on("new_msg", function (msg) {
+                so.on("new_dm", function (msg) {
                     if ("undefined" != typeof console) {
                         console.log("收到弹幕消息：" + msg);
                     }
