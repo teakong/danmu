@@ -293,11 +293,11 @@ if($type == "send") {
     $time = explode(" ", microtime());
     $url = strpos($url, "?") === false ? $url . "?time=".$time[0] : $url . "&time=".$time[0];
     // head为弹幕内容, 200字以内, 如果是公告类型弹幕不要传url参数，传body=公告markdown文档
-    $nextUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?delayMilliseconds=1000&url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($head). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
+    $nextUrl = "https://www.phprm.com/services/push/trigger/${channelCode}?url=".rawurlencode($url)."&avatar=".rawurlencode($avatar)."&head=".urlencode($head). "&timestamp=".$timestamp. "&nonce=".$nonce. "&sign=".$sign;
     $json = file_get_contents($nextUrl);
     $jsonObject = json_decode($json, true);
 
-    if(empty($jsonObject) || empty($jsonObject["data"]["messageIdList"])) {
+    if(empty($jsonObject) || !isset($jsonObject["data"]["messageIdList"]) || empty($jsonObject["data"]["messageIdList"])) {
         // 公开弹幕推送失败
         $resultModel["code"] = -1;
         $resultModel["message"] = "公开弹幕推送失败";
@@ -570,7 +570,7 @@ if($type == "checkAiDanMu") {
 	$json = file_get_contents($sendUrl);
 	$jsonObject = json_decode($json, true);
 
-	if(empty($jsonObject) || empty($jsonObject["data"]["messageIdList"])) {
+	if(empty($jsonObject) || !isset($jsonObject["data"]["messageIdList"]) || empty($jsonObject["data"]["messageIdList"])) {
 		// 弹幕消息推送失败
 		$resultModel["code"] = -1;
 		$resultModel["message"] = "弹幕消息推送失败";
