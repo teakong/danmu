@@ -2864,8 +2864,8 @@ try {
                 var _this = this;
                 var options = arguments[0] || {};
                 var appName = options.appName || "";
-                // 单例保护: 同一appName重复调用直接返回; 不同appName允许重新初始化(创建不同实例)
-                if (appName && _this._initedAppName === appName) {
+                // 单例保护; 不同appName允许重新初始化(仅允许hidePanel==1重新初始化)
+                if (appName && _this._initedAppName === appName && options.hidePanel != 1) {
                     return;
                 }
                 // 递增初始化版本号: 让异步回调(Fingerprint2等)检测是否已被更新的 init 取代,
