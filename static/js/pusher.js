@@ -2141,14 +2141,20 @@ try {
                 // 1) 重启冻结的弹幕动画 (barrager.js 用 jQuery .animate, .stop(true) 后需手动恢复)
                 var speed = (s.danMuSetting.speed ? s.danMuSetting.speed : 16) * 1000;
                 var targetRight = $(window).width() + 500;
-                var totalDist = targetRight + 500; // 起点right=-500, 终点right=window+500
+                // 与 barrager.js 保持一致: 起点为 -(弹幕自身宽度+20), 不再是固定的 -500
+                // (起点若按 -500 估算, totalDist 偏小, 恢复飞行时剩余时长会算多, 弹幕明显变慢)
                 $(".barrage").each(function () {
                     var $el = $(this);
-                    var curRight = parseInt($el.css("right")) || -500;
+                    var elWidth = $el.outerWidth(true) || 0;
+                    var totalDist = targetRight + elWidth + 20;
+                    var curRight = parseInt($el.css("right"));
+                    if (isNaN(curRight)) {
+                        curRight = -(elWidth + 20);
+                    }
                     if (curRight < targetRight) {
                         var remain = targetRight - curRight;
                         var dur = Math.max(1000, (remain / totalDist) * speed);
-                        $el.animate({ right: targetRight }, dur, function () {
+                        $el.animate({ right: targetRight }, dur, "linear", function () {
                             $(this).remove();
                         });
                     } else {

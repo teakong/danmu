@@ -167,13 +167,30 @@
 
 		div_barrager.css("margin-right", 0);
 
+		// 起点改为紧贴视口右缘外侧(只留 20px 缓冲), 覆盖 CSS 里固定的 right:-500px。
+		// 原实现从 right:-500 起步, 弹幕必须先飞满 500px 才进入视口, speed=20s 时要等
+		// 4~6 秒才看得见(叠加 jQuery 默认 swing 缓动的"开局极慢"更久)。
+		// 改为按自身宽度计算起点, 弹幕一开始就贴着右边缘, 几乎立即可见。
+		var startRight = -(realWidth > 0 ? realWidth : 40) - 20;
+		div_barrager.css("right", startRight + "px");
+
 		// 弹幕飞出动画的启动/恢复共用入口: 元素已移除或正在动画中时直接跳过, 避免重复排队
 		// (桌面端鼠标悬停会 stop 暂停, 移出后由此恢复; 移动端点赞后也由此自动恢复)
 		var flyAway = function () {
 			var $el = $(id);
 			if (!document.getElementById(barrager_id)) return;
 			if ($el.is(":animated")) return;
-			$el.animate({ right: this_width }, barrage.speed * 1000, function () {
+			// linear: 去掉 jQuery 默认 swing 缓动(开局导数趋近0, 前几百px几乎不动)
+			// 剩余时长按剩余距离占比折算: 悬停恢复后保持原速度, 不会因距离变短而变慢
+			var curRight = parseInt($el.css("right"));
+			var start = isNaN(curRight) ? startRight : curRight;
+			var full = this_width - startRight;
+			var remain = this_width - start;
+			var dur =
+				full > 0 && remain > 0
+					? Math.max(1000, (remain / full) * barrage.speed * 1000)
+					: barrage.speed * 1000;
+			$el.animate({ right: this_width }, dur, "linear", function () {
 				$(id).remove();
 			});
 		};
