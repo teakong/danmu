@@ -43,16 +43,30 @@ KF.prototype = {
             channelName: "一封传话",
             name: "匿名",
             group: 0,
-            avatar: ""
+            avatar: "",
+            wsUrl: ""
         };
         var base = this.extend(settings, config || {});
         this.settings = base;
         if(0 == base.uid || "" == base.url || "" == base.name || 0 == base.group || "" == base.avatar){
-            alert("param missing");
+            console && console.error("param missing", base);
             return false;
         }
-        var url = base.url + "?group=" + base.group + "&token=" + base.token + "&createTime=" + base.createTime + "&channelCode=" + base.channelCode + "&shareFlag=" + base.shareFlag + "&channelName=" + base.channelName + "&uid=" + base.uid + "&name=" + base.name + "&avatar=" + encodeURIComponent(base.avatar);
-        if(this.isMobile() || base.mobile){
+        var mobile = this.isMobile() || base.mobile;
+        // 优先复用 WebsitePusher 的URL拼装(参数顺序与wsUrl透传保持同一份实现)
+        var pusher = "undefined" != typeof(WebsitePusher) ? WebsitePusher : null;
+        var url;
+        if(pusher && "function" == typeof(pusher.getPusherPcUrl) && "function" == typeof(pusher.getPusherMobileUrl)){
+            url = mobile ? pusher.getPusherMobileUrl(base) : pusher.getPusherPcUrl(base);
+        }else{
+            // 独立引入 kf.js 时没有 WebsitePusher, 回退本地拼接
+            url = base.url + "?group=" + base.group + "&token=" + base.token + "&createTime=" + base.createTime + "&channelCode=" + base.channelCode + "&shareFlag=" + base.shareFlag + "&channelName=" + base.channelName + "&uid=" + base.uid + "&name=" + base.name + "&avatar=" + encodeURIComponent(base.avatar);
+            // 将通道接口下发的WebSocket地址透传给聊天页(pc.html/mobile.html), 页面为空时回退内置地址
+            if(base.wsUrl){
+                url += "&wsUrl=" + encodeURIComponent(base.wsUrl);
+            }
+        }
+        if(mobile){
             window.location.href = url;
         }else{
             this.openWindow(url, base.channelName, base.uid);

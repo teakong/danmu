@@ -1305,9 +1305,18 @@ try {
                     input.find("div[id='channelMsg']").text(resp.message);
                 }
             },
+            /**
+             * 缓存通道接口下发的 WebSocket 地址(resp.data.wsUrl), 为空时回退默认地址
+             * 供 danMuPop 建连时使用, 避免硬编码地址与服务端配置不一致
+             */
+            saveWsUrl: function (resp) {
+                var wsUrl = resp && resp.data ? resp.data.wsUrl : "";
+                this.channelWsUrl = wsUrl ? wsUrl : "https://2120ws.phprm.com";
+            },
             channelMemberSuccess: function (resp, input, group, channelCodes) {
                 var _this = this;
                 var data = resp.data;
+                _this.saveWsUrl(resp);
                 input.find("div[id='channelMsg']").text("");
                 if (data.pushType == 1) {
                     var params = {
@@ -1323,7 +1332,9 @@ try {
                         group: data.group,
                         channelCode: data.channelCode,
                         token: data.token,
-                        shareFlag: data.shareFlag
+                        shareFlag: data.shareFlag,
+                        // 传给 configCallback / kf.init, 由 kf.js 拼到 pc.html/mobile.html 的URL上
+                        wsUrl: _this.channelWsUrl || _this.settings.wsUrl
                     };
                     _this.initPusherKF(params);
                     input.find(".lf").text(data.channelName);
@@ -1416,6 +1427,8 @@ try {
                             _this.channelMemberFail(resp, input, group, channelCodes);
                             return;
                         }
+                        // danMuPop 在本函数末尾的 channelMemberSuccess 之前执行, 此处先缓存 wsUrl
+                        _this.saveWsUrl(resp);
                         if (s.danMu == 1) {
                             var danMuInit = s.danMuInitCallback(s);
                             // 始终创建弹幕悬浮图标、保存DOM和token, 供后续 startDanMu 恢复
@@ -1546,6 +1559,10 @@ try {
                     if ("group" in params) s.group = params.group;
                     if ("shareFlag" in params) s.shareFlag = params.shareFlag;
                 }
+                // 保证 configCallback 与 kf.init 收到的 params 一定带 wsUrl(外部直接调用 initPusherKF 时兜底)
+                if (params && !params.wsUrl) {
+                    params.wsUrl = this.channelWsUrl || s.wsUrl;
+                }
                 if (!s.configCallback) {
                     return;
                 }
@@ -1583,7 +1600,11 @@ try {
                     _this.danMuSocket = null;
                     _this.danMuSocketToken = null;
                 }
-                var so = io(_this.settings.wsUrl || "https://2120ws.phprm.com");
+                var so = io(
+                    _this.settings.wsUrl ||
+                    _this.channelWsUrl ||
+                    "https://2120ws.phprm.com",
+                );
                 _this.danMuSocket = so;
                 _this.danMuSocketToken = params.token;
                 // 读取弹幕配置并缓存（避免每条消息重复读取解析）
@@ -1827,8 +1848,17 @@ try {
                 }
                 return chars.slice(0, maxLen).join("") + ellipsis;
             },
+            /**
+             * 拼接WebSocket地址参数(供下面两个 URL 方法复用)
+             * 为空时不拼该参数, 聊天页(pc.html/mobile.html)会自动回退内置地址
+             */
+            appendWsUrlParam: function (url, c) {
+                return c && c.wsUrl
+                    ? url + "&wsUrl=" + encodeURIComponent(c.wsUrl)
+                    : url;
+            },
             getPusherPcUrl: function (c) {
-                return (
+                return WebsitePusher.appendWsUrlParam(
                     c.url +
                     "?group=" +
                     c.group +
@@ -1847,11 +1877,12 @@ try {
                     "&name=" +
                     c.name +
                     "&avatar=" +
-                    encodeURIComponent(c.avatar)
+                    encodeURIComponent(c.avatar),
+                    c,
                 );
             },
             getPusherMobileUrl: function (c) {
-                return (
+                return WebsitePusher.appendWsUrlParam(
                     c.url.replace("pc", "mobile") +
                     "?group=" +
                     c.group +
@@ -1870,7 +1901,8 @@ try {
                     "&name=" +
                     c.name +
                     "&avatar=" +
-                    encodeURIComponent(c.avatar)
+                    encodeURIComponent(c.avatar),
+                    c,
                 );
             },
             addChannelInput: function (button, channelCode) {
@@ -2425,7 +2457,8 @@ try {
                             group: $btn.data("group"),
                             channelCode: $btn.data("code"),
                             token: $btn.data("token"),
-                            shareFlag: $btn.data("share")
+                            shareFlag: $btn.data("share"),
+                            wsUrl: _this.channelWsUrl || _this.settings.wsUrl
                         };
                         _this.initPusherKF(params);
                     });
