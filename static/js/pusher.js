@@ -2361,6 +2361,11 @@ try {
             startLogin: function (button) {
                 var _this = this;
                 var mainLogin = $(button).parents(".main-login");
+                if (!mainLogin.find("#randomStr").val()) {
+                    // randomStr 由服务端异步签发, 尚未到手时先不提交
+                    mainLogin.find("#verifyCode").focus();
+                    return;
+                }
                 var obj = {
                     field: {
                         grant_type: "password",
@@ -2588,7 +2593,7 @@ try {
                     apiSign: apiSign
                 };
             },
-            buildLoginWindowHtml: function (randomStr) {
+            buildLoginWindowHtml: function () {
                 var s = this.settings;
                 return (
                     "<!DOCTYPE html><html>" +
@@ -2619,13 +2624,8 @@ try {
                     "</div>" +
                     '<div style="clear:both;height:54px;position:relative">' +
                     '				<input type="code" placeholder="验证码" class="login-verify" id="verifyCode"/>' +
-                    '<div class="login-captcha"><input id="randomStr" type="hidden" value="' +
-                    randomStr +
-                    '"/><span><img class="random-code" src="' +
-                    s.authUrl +
-                    "/draw/captcha/image?randomStr=" +
-                    randomStr +
-                    '"/></span></div>' +
+                    '<div class="login-captcha"><input id="randomStr" type="hidden" value=""/>' +
+                    '<span><img class="random-code" alt="验证码"/></span></div>' +
                     "</div>" +
                     '<div class="login-button"><table border="0" cellpadding="0" cellspacing="0">' +
                     "<tbody><tr>" +
@@ -2691,14 +2691,15 @@ try {
                     "';d.write('');d.close()})())\" scrolling='no' width='470' height='490' id='loginIframe' allowtransparency></iframe>";
                 $("#viewLogin").html(loginHtml);
                 var loginFrame = $("#loginIframe")[0];
-                var randomStr = _this.randomCode(4, true);
                 try {
                     var doc = loginFrame.contentWindow.document;
                     var $doc = $(doc);
                     doc.open();
-                    var html = _this.buildLoginWindowHtml(randomStr);
+                    var html = _this.buildLoginWindowHtml();
                     doc.write(html);
                     doc.close();
+                    // 登录框先渲染, 验证码标识异步向服务端申请后再挂图片 src (buildLoginWindowHtml 已不再写 src)
+                    _this.refreshRandomStr($doc.find(".login-captcha"));
 
                     $doc.find("#loading").text("正在加载中...");
                     $doc.find(".main").fadeIn(100, function () {
@@ -2738,18 +2739,43 @@ try {
                     console && console.log(err);
                 }
             },
+            /**
+             * 验证码标识 randomStr 由服务端签发 (GET /draw/captcha/key),
+             * 前端不再生成 randomStr, 否则 /draw/captcha/image 会因未签发而拒出图
+             * @param {function(string)} callback 回调, 参数为签发值, 失败时为空字符串
+             */
+            fetchCaptchaKey: function (callback) {
+                $.ajax({
+                    url: this.settings.authUrl + "/draw/captcha/key",
+                    type: "GET",
+                    dataType: "json",
+                    crossDomain: true,
+                    success: function (res) {
+                        callback(res && res.code == 0 && res.data ? res.data : "");
+                    },
+                    error: function () {
+                        callback("");
+                    },
+                });
+            },
             refreshRandomStr: function (button) {
                 var _this = this;
-                var randomStr = _this.randomCode(4, true);
-                $(button).find("#randomStr").val(randomStr);
-                $(button)
-                    .find(".random-code")
-                    .attr(
-                        "src",
-                        _this.settings.authUrl +
-                        "/draw/captcha/image?randomStr=" +
-                        randomStr,
-                    );
+                var captchaBox = $(button);
+                _this.fetchCaptchaKey(function (randomStr) {
+                    if (!randomStr) {
+                        // 签发失败保持原状, 用户可再次点击重试
+                        return;
+                    }
+                    captchaBox.find("#randomStr").val(randomStr);
+                    captchaBox
+                        .find(".random-code")
+                        .attr(
+                            "src",
+                            _this.settings.authUrl +
+                            "/draw/captcha/image?randomStr=" +
+                            randomStr,
+                        );
+                });
             },
             logout: function (button) {
                 var mainLogin = $(button).parents(".main-login");
@@ -2758,15 +2784,6 @@ try {
                 mainLogin.find("#divTodo").hide();
                 mainLogin.find("#divLogin").show();
                 mainLogin.find("#anonymousButton").show();
-            },
-            randomCode: function (len, date) {
-                var random = Math.ceil(Math.random() * 100000000000000)
-                    .toString()
-                    .substr(0, len || 4);
-                if (date) {
-                    random = random + Date.now();
-                }
-                return random;
             },
             getUserInfo: function (name) {
                 return this.cookieGet(name);
