@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="400" viewBox="0 0 320 400">
+    <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#3a7afe"/>
+            <stop offset="1" stop-color="#7b5cf0"/>
+        </linearGradient>
+    </defs>
+    <rect width="320" height="400" fill="url(#g)"/>
+    <circle cx="268" cy="78" r="72" fill="#ffffff" opacity="0.10"/>
+    <circle cx="52" cy="304" r="58" fill="#ffffff" opacity="0.08"/>
+    <rect x="236" y="24" width="56" height="26" rx="13" fill="#ffffff" opacity="0.18"/>
+    <text x="264" y="43" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="bold">AD</text>
+    <text x="28" y="126" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="bold">广告位示例</text>
+    <text x="28" y="162" fill="#ffffff" opacity="0.88" font-family="Arial, Helvetica, sans-serif" font-size="15">ad 插件 · 右下角图片广告</text>
+    <text x="28" y="204" fill="#ffffff" opacity="0.66" font-family="Arial, Helvetica, sans-serif" font-size="13">head=广告 + avatar(图片)</text>
+    <text x="28" y="228" fill="#ffffff" opacity="0.66" font-family="Arial, Helvetica, sans-serif" font-size="13">+ url(跳转) + hold(秒)</text>
+    <line x1="28" y1="262" x2="292" y2="262" stroke="#ffffff" stroke-width="1" opacity="0.25"/>
+    <rect x="28" y="292" width="168" height="36" rx="18" fill="#ffffff" opacity="0.92"/>
+    <text x="112" y="315" text-anchor="middle" fill="#3a56c4" font-family="Arial, Helvetica, sans-serif" font-size="13">示例图片 320×400</text>
+</svg>

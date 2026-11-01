@@ -473,7 +473,6 @@ var settings = {
         danMu: 1,
         channelCode: "3db15cb9ff360873027019296797c796",
 		device: "81614",	                            // 指定业务后端注册用户唯一UID，将从channelMemberUrl自动换取uid
-        hidePanel: 1,
         hideDialog: 1,
         danMuSetting: {
             aiDanMu: 60,	                            // 每60秒间隔轮询一次后端, 当后端异常或者aiRestAmount<=0将终止轮询
@@ -640,7 +639,7 @@ if($type == "checkAiDanMu") {
 <script type="text/javascript" src="static/syntaxhighlighter/scripts/shBrushPhp.js"></script>
 
 <!-- 可以预加载js资源和css文件后再进行init -->
-<script src="static/js/danmu.js?appName=AI弹幕&hideDialog=1&hidePanel=1&autoInit=0"></script>
+<script src="static/js/danmu.js?appName=AI弹幕&hideDialog=1&autoInit=0"></script>
 <script type="text/javascript">
     // 初始化 SyntaxHighlighter, 高亮 <pre class="brush: xxx"> 代码块
     SyntaxHighlighter.all();
@@ -707,8 +706,8 @@ if($type == "checkAiDanMu") {
      *  全局配置: 传给 WebsitePusher.init(options)
      *  - appName        应用名称(必填)
      *  - channelCode    推送通道码, 触发远程弹幕时使用
-     *  - hidePanel/     1=隐藏推送面板/对话框, 避免遮挡演示页
-     *    hideDialog
+     *  - hideDialog     1=隐藏对话框, 避免遮挡演示页
+     *  - plugins        要加载的插件(英文逗号分隔), 需要右上角面板写 panel; hidePanel 已废弃
      *  - danMuSetting   弹幕默认外观, updateDanMu 会在此基础上深合并
      *  - sendCallback   sendDanMu 渲染完成后的回调, 此处演示把本地弹幕
      *                   异步推送到后端 trigger 接口, 实现"先本地滚动, 再云端分发"
@@ -720,7 +719,6 @@ if($type == "checkAiDanMu") {
         danMu: 1,				// 弹幕传1
         channelCode: "3db15cb9ff360873027019296797c796",	// 未认证域名必传, 已认证域名可不传, 若指定将从指定通道监听和发送弹幕数据
 		device: "10086",	    // 指定业务后端注册用户唯一UID，将从channelMemberUrl自动换取uid, 头像请根据device自行映射头像和昵称
-        hidePanel: 1,			// 是否隐藏默认面板
         hideDialog: 1,			// 是否隐藏默认对话窗口
         danMuSetting: {
             hideIcon: 0,        // 0=显示右下角浮窗图标

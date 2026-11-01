@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="纯前端 Markdown 转 HTML 工具：把 markdown 文件转成离线 html，可输入 32 位 16 进制通道码生成带通道码的 html；上传已带通道码的 html 可自动识别并替换。全程浏览器本地运行，文件不上传服务器。" />
+<title>Markdown转HTML工具 - 加通道码 / 提取通道码（本地处理，不上传）</title>
+<meta name="theme-color" content="#1a9e5a" />
+
+<link rel="stylesheet" href="css/style.css" />
+<style>
+/* GitHub 角标 */
+.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out;}
+@keyframes octocat-wave{0%,100%{transform:rotate(0);}20%,60%{transform:rotate(-25deg);}40%,80%{transform:rotate(10deg);}}
+@media (max-width:500px){.github-corner:hover .octo-arm{animation:none;}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out;}}
+</style>
+</head>
+<body>
+<!-- GitHub 角标（与首页一致） -->
+<a href="https://github.com/teakong/danmu" class="github-corner" target="_blank" rel="noopener" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0; z-index: 9999;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="logo" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 34 34" role="img">
+        <rect x="1" y="1" width="32" height="32" rx="8" fill="#1a9e5a"/>
+        <text x="17" y="19" text-anchor="middle" font-size="11" fill="#fff" font-family="Arial">M↓</text>
+      </svg>
+    </div>
+    <div class="brand"><p>加通道码 · 提取通道码</p></div>
+    <div class="spacer"></div>
+    <span class="pill"><span class="dot"></span>本地处理 · 文件不上传</span>
+  </div>
+</header>
+
+<main class="container">
+  <h1 class="title">Markdown转HTML工具：加通道码 / 提取通道码</h1>
+  <p class="desc">把 Markdown 或 HTML 文件拖进来，<b>一份文件两种用法</b>：输入 32 位通道码，下载的离线 html 自动带上该通道的弹幕，未输入通道码则生成不带通道码的版本；上传已带通道码的 html 会自动识别，重新输入即可替换。</p>
+
+  <ol class="steps">
+    <li id="step1"><b>1 上传</b><span>请上传1个markdown或者html文件</span></li>
+    <li id="step2"><b>2 加通道码 / 提取</b><span>两个面板任选</span></li>
+    <li id="step3"><b>3 下载</b><span>结果自动命名</span></li>
+  </ol>
+
+  <div class="card">
+    <div class="dropzone" id="dropzone">
+      <svg class="dz-icon" viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+      <div class="dz-text">把 Markdown / HTML 文件拖到此处，或<span class="link">点击选择文件</span></div>
+      <div class="hint">支持 .md / .markdown / .html / .htm，单次上传 1 个文件，单个不超过 10MB</div>
+      <input type="file" id="fileInput" accept=".md,.markdown,.html,.htm,text/markdown,text/html" hidden />
+    </div>
+
+    <div class="list-head">
+      <span>已上传的文件</span>
+      <div class="list-actions"><button class="btn" id="btnReset">清空重来</button></div>
+    </div>
+    <div class="filelist" id="fileList"><p class="empty">还没有文件</p></div>
+    <p class="status" id="uploadStatus" aria-live="polite"></p>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="ic" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+        </svg>
+      </span>
+      <h2>加通道统计</h2>
+      <span class="hint">下载 原文件名.html（可带通道码）</span>
+    </div>
+    <div class="panel-body">
+      <div class="row">
+        <label class="lab" for="ccInput">通道码</label>
+        <input type="text" id="ccInput" maxlength="32" placeholder="32位字符串，留空=不带通道码" />
+      </div>
+      <p class="hint">通道码为 32 位 16 进制字符串（例：<code>3db15cb9ff360873027019296797c796</code>），到<a href="https://push.phprm.com/message.html" target="_blank">一封传话官网</a>注册后获取；生成的 html 会加载 danmu.js。</p>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary act" id="btnChannel">添加通道码并下载</button>
+      </div>
+      <p class="hint" id="adTip" hidden>打开下载的html页面后，点击链接：<a id="adLink" href="#" target="_blank" rel="noopener"></a></p>
+      <p class="status" id="ccStatus" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="ic" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 0 2-2v-2"/>
+        </svg>
+      </span>
+      <h2>提取内嵌通道码</h2>
+      <span class="hint">上传 HTML 后自动识别</span>
+    </div>
+    <div class="panel-body">
+      <div class="cc-show" id="ccShow"><p class="empty">提取出的通道码出现在这里</p></div>
+    </div>
+  </section>
+
+  <section class="panel seo" aria-labelledby="t-seo">
+    <div class="panel-head">
+      <span class="ic" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+        </svg>
+      </span>
+      <h2 id="t-seo">关于这个Markdown转HTML工具</h2>
+      <span class="hint">本地处理 · 无需上传 · 离线可用</span>
+    </div>
+    <div class="panel-body">
+      <p class="lead"><b>Markdown转HTML工具</b>把学习资料做成一个<b>能统计、能赚钱的网页文件</b>：把笔记转成网页后，随时可以看到这份资料被多少人打开过——哪怕你把它放进压缩包、通过网盘分享给别人，打开次数一样统计得到；还可以在网页里加入<b>动态广告</b>，把正在浏览资料的人变成收入（夸克网盘分享链接、京东、淘宝客双十一活动链接等都能放）。全程在你自己的电脑上完成，文件不会上传到任何服务器。</p>
+
+      <div class="seo-grid">
+        <div>
+          <h3>能做什么</h3>
+          <ul>
+            <li><b>统计打开次数</b>：生成的网页会自动记录被打开的次数，压缩包、网盘分享的也一样算，随时知道资料火不火、最近有没有人看。</li>
+            <li><b>加入动态广告</b>：网页里能嵌入广告，别人打开时自动展示，通过夸克网盘分享链接、京东、淘宝客双十一活动链接等赚取佣金。</li>
+            <li><b>识别与更换设置</b>：上传之前生成的网页，能自动认出里面已有的通道码；填新的下载即替换，不想留也可以移除。</li>
+            <li><b>纯本地</b>：生成、修改全部在自己电脑上完成，文件不上传、不落盘。</li>
+          </ul>
+        </div>
+        <div id="how">
+          <h3>怎么用（三步）</h3>
+          <ol>
+            <li><b>上传</b>：把 markdown 或 html 文件拖进来，或点击选择（单次 1 个）。</li>
+            <li><b>设置通道</b>：「加通道统计」面板填上你的通道码，点「添加通道码并下载」；「提取内嵌通道码」面板会显示识别到的通道码。不填也能直接下载。</li>
+            <li><b>下载</b>：markdown 生成 <code>原文件名.html</code>；带通道码的生成 <code>原文件名-带通道码.html</code>。</li>
+          </ol>
+          <p class="note">不填通道码时：markdown 生成普通网页；上传的 html 会生成移除原通道码的版本。</p>
+        </div>
+      </div>
+
+      <div id="faq">
+        <h3>常见问题</h3>
+        <details open>
+          <summary>这个工具能做什么？</summary>
+          <p class="faq-a">把 markdown 文件转成离线 html（可注入 32 位 16 进制通道码，让页面带上该通道的弹幕）；同时能从已生成的 html 里识别、替换或移除通道码。全部在你自己的浏览器里完成。</p>
+        </details>
+        <details>
+          <summary>需要上传文件吗？会不会泄露？</summary>
+          <p class="faq-a">不需要。文件用浏览器本地读取，Markdown 解析、通道码注入与替换全部在当前标签页内完成，服务器上没有落盘、没有日志、没有账号体系。关掉页面就什么都不剩。</p>
+        </details>
+        <details>
+          <summary>通道码是什么？</summary>
+          <p class="faq-a">通道码是<b>一封传话</b>（聚合消息推送平台）的推送通道标识，32 位长度字符串（如 <code>3db15cb9ff360873027019296797c796</code>），在各通道中全局唯一。每个通道由一个通道码标识，无论日后更换聊天工具或接入方式，代码都不需要重写。通道码到<a href="https://push.phprm.com/message.html" target="_blank">一封传话官网</a>注册后免费获取，生成的 html 会加载 danmu.js 的脚本，打开页面时需联网才能实时接收该通道的弹幕与消息。</p>
+        </details>
+        <details>
+          <summary>一封传话是什么？官网在哪里？</summary>
+          <p class="faq-a">一封传话是面向开发者和团队的聚合消息推送平台：一次 HTTP 调用或一行网页 JS，即可把消息同时送达企业微信、钉钉、飞书、邮件、Bark、Telegram、Discord 和自定义 Webhook。除推送外还内置<b>网站弹幕</b>（一行 JS 为任意网站加上弹幕，支持点赞交互、回调过滤与 AI 自动生成弹幕）、<b>网站访问统计</b>（把 danmu.js 带 <code>plugins=stat</code> 参数粘进任意页面，即可获得浏览量、访客数、来源渠道、设备分布等访问统计看板，注重隐私、不使用 Cookie）、<b>广告</b>（<code>plugins=ad</code>）默认停留30秒，可以修改自己新建通道码的停留时长。详细介绍与在线体验请访问官网首页：<a href="https://push.phprm.com/index.html" target="_blank" rel="noopener">https://push.phprm.com/index.html</a>。</p>
+        </details>
+        <details>
+          <summary>上传的 html 里已有通道码，会被改动吗？</summary>
+          <p class="faq-a">输入新通道码并下载时，原有通道码会被替换；不输入通道码直接下载时，会生成移除通道码的版本。除此之外文件的其他内容原样保留。</p>
+        </details>
+        <details>
+          <summary>一次能处理多大的文件？</summary>
+          <p class="faq-a">单次上传 1 个文件，markdown 或 html 均可（.md / .markdown / .html / .htm），单个不超过 10MB。这是浏览器内存与响应时间给的余量，不是格式限制。</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <p class="note">离线使用说明：本页面完全在浏览器本地运行，不上传任何数据，关掉页面即不留痕迹。</p>
+</main>
+
+<footer class="foot">
+  <p><b>Markdown转HTML工具</b> —— 把学习资料做成能统计打开次数、能放广告赚佣金的离线网页，全部在浏览器本地完成，文件不上传服务器。</p>
+  <p><a href="#t-seo">功能介绍</a> · <a href="#how">使用方法</a> · <a href="#faq">常见问题</a> · 所有处理均在您自己的浏览器中完成，本站不采集、不存储。</p>
+</footer>
+
+<script src="vendor/showdown.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

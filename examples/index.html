@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <title>danmu 插件示例总览</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{margin:0;background:#f5f6f8;color:#222;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;}
+    .wrap{max-width:1568px;margin:0 auto;padding:24px 16px 72px;}
+    h1{font-size:22px;margin:0 0 6px;}
+    .sub{color:#8a8f96;font-size:14px;margin:0 0 18px;}
+    .card{background:#fff;border:1px solid #e5e8eb;border-radius:8px;padding:16px;margin-bottom:16px;}
+    .card h2{font-size:16px;margin:0 0 10px;}
+    code{background:#f1f3f5;padding:1px 5px;border-radius:3px;font-family:Consolas,Menlo,monospace;font-size:13px;}
+    code.block{display:block;padding:10px 12px;margin:8px 0;overflow:auto;white-space:pre;}
+    .step{margin:16px 0 6px;font-size:15px;font-weight:600;}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    th,td{border-bottom:1px solid #eef0f2;padding:7px 8px;text-align:left;vertical-align:top;}
+    th{color:#666;font-weight:600;white-space:nowrap;}
+    a{color:#2b6fe4;text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .hint{font-size:13px;color:#8a8f96;}
+    ul{margin:6px 0 0 20px;padding:0;}
+    li{margin:2px 0;}
+    .tag{display:inline-block;padding:0 6px;border-radius:3px;background:#eef4ff;color:#2b6fe4;font-size:13px;}
+    /* >>cb-theme */
+    /* code block: terminal style with copy button */
+    .cb{position:relative;margin:12px 0;background:#1e293b;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.15);}
+    .cb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #334155;}
+    .cb-dots{display:flex;gap:8px;}
+    .cb-dots i{width:12px;height:12px;border-radius:50%;display:inline-block;}
+    .cb-dots .r{background:#ff5f56;}
+    .cb-dots .y{background:#ffbd2e;}
+    .cb-dots .g{background:#27c93f;}
+    .cb-btn{display:flex;align-items:center;gap:4px;background:none;border:none;color:#94a3b8;font-size:12px;padding:4px 8px;border-radius:4px;cursor:pointer;transition:all .15s;font-family:inherit;}
+    .cb-btn:hover{background:#334155;color:#e2e8f0;}
+    .cb-btn svg{width:14px;height:14px;fill:currentColor;}
+    .cb-body{display:block;margin:0;padding:16px;background:#1e293b;border-radius:0;color:#a5f3a5;font:14px/1.8 Consolas,Monaco,"Courier New",monospace;white-space:pre;overflow-x:auto;}
+    .cb-body .k{color:#c084fc;}
+    .cb-body .s{color:#86efac;}
+    .cb-body .c{color:#64748b;font-style:italic;}
+    .cb-body .fn{color:#60a5fa;}
+    /* <<cb-theme */
+    /* GitHub 角标 */
+    .github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out;}
+    @keyframes octocat-wave{0%,100%{transform:rotate(0);}20%,60%{transform:rotate(-25deg);}40%,80%{transform:rotate(10deg);}}
+    @media (max-width:500px){.github-corner:hover .octo-arm{animation:none;}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out;}}
+  </style>
+</head>
+<body>
+<!-- GitHub 角标（与首页一致） -->
+<a href="https://github.com/teakong/danmu" class="github-corner" target="_blank" rel="noopener" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0; z-index: 9999;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a>
+
+<div class="wrap">
+  <h1>danmu 插件示例</h1>
+  <p class="sub">当前示例包含访问统计、异常汇报、广告推送插件，可以在 <a href="https://push.phprm.com/message.html" target="_blank" rel="noopener noreferrer">官网</a> 添加飞书、钉钉、企业微信、邮件，把异常和访问记录推送到你的手机上，还可以使用 <a href="md2html/index.html" target="_blank" rel="noopener noreferrer">markdown转html</a> 将你的学习资料转化为可推送广告的离线HTML文件收入变现。</p>
+
+  <div class="card">
+    <h2>运行方式</h2>
+    <p>下面几种打开方式都可以，任选一种：</p>
+    <ul>
+      <li>web 服务器（推荐）：把 <code>danmu</code> 目录当站点根或子目录，访问 <code>/examples/</code>；</li>
+      <li>静态站点服务器（如 <code>npx serve .</code>）：在仓库根目录启动后访问 <code>/examples/</code>；</li>
+      <li>本地双击（<code>file://</code>）：例如你辛苦整理的离线文档资料同样能接入弹幕、统计和广告，见 <a href="md2html/index.html" target="_blank" rel="noopener">markdown转html</a>；</li>
+      <li>单独分发某个 html 时，同样也可以统计打开人数、访问趋势以及推送广告，见 <a href="offline.html" target="_blank" rel="noopener">offline.html</a>。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>示例列表</h2>
+    <table>
+      <tr><th>插件</th><th>示例页</th><th>演示内容</th></tr>
+      <tr>
+        <td><span class="tag">panel</span></td>
+        <td><a href="panel.html" target="_blank" rel="noopener">panel.html</a></td>
+        <td>右上角推送面板：通道码、登录账户、增加通道、弹幕设置，以及打开/关闭面板的 API。</td>
+      </tr>
+      <tr>
+        <td><span class="tag">stat</span></td>
+        <td><a href="stat.html" target="_blank" rel="noopener">stat.html</a></td>
+        <td>访问统计：加载上报 <code>visit</code>，点击上报 <code>click</code>（body 是点击描述）。</td>
+      </tr>
+      <tr>
+        <td><span class="tag">ad</span></td>
+        <td><a href="ad.html" target="_blank" rel="noopener">ad.html</a></td>
+        <td>右下角图片广告位：<code>head=广告</code> 且带 <code>avatar</code> 时展示图片，可关闭、可按停留时长自动消失。</td>
+      </tr>
+      <tr>
+        <td><span class="tag">axios-report</span></td>
+        <td><a href="axios-report.html" target="_blank" rel="noopener">axios-report.html</a></td>
+        <td>axios 接口异常上报（<code>head=axios</code>）。</td>
+      </tr>
+      <tr>
+        <td><span class="tag">vue-report</span></td>
+        <td><a href="vue-report.html" target="_blank" rel="noopener">vue-report.html</a></td>
+        <td>Vue 异常与告警上报（<code>head=vue</code>）。</td>
+      </tr>
+      <tr>
+        <td><span class="tag">stat</span> + <span class="tag">ad</span></td>
+        <td><a href="multi.html" target="_blank" rel="noopener">multi.html</a></td>
+        <td>多插件组合（<code>plugins=stat,ad</code>）：统计与广告位同时生效。</td>
+      </tr>
+      <tr>
+        <td><span class="tag">离线双击</span></td>
+        <td><a href="offline.html" target="_blank" rel="noopener">offline.html</a></td>
+        <td>单个 html 双击（<code>file://</code>）：组件走线上地址，演示弹幕 + 广告位。</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>公共参数（写在 danmu.js 的 src 查询串上）</h2>
+    <table>
+      <tr><th>参数</th><th>说明</th></tr>
+      <tr><td><code>appName</code></td><td>应用名，用于统计；不传则不自动 init（配合 <code>autoInit=0</code>）。</td></tr>
+      <tr><td><code>channelCode</code></td><td>通道码；不传则按当前网址自动认领。</td></tr>
+      <tr><td><code>danMu</code></td><td><code>1</code>=渲染弹幕；<code>0</code>=不渲染（仍做推送/统计；加载了 <code>ad</code> 插件时照常展示广告位）。</td></tr>
+      <tr><td><code>plugins</code></td><td>要加载的插件，英文逗号分隔，如 <code>stat</code>、<code>panel</code>、<code>stat,ad</code>。默认不加载插件。</td></tr>
+      <tr><td><code>hideDialog</code></td><td><code>1</code>=不自动弹出对话窗口。</td></tr>
+      <tr><td><code>hideIcon</code></td><td><code>1</code>=不显示右下角入口图标（只想留广告位/面板时用）。</td></tr>
+      <tr><td><code>autoInit</code></td><td><code>0</code>=只加载依赖不初始化，之后监听 <code>websitePusherReady</code> 自行调用 <code>WebsitePusher.init()</code>（本目录的 stat / axios-report / vue-report 示例就是这样）。</td></tr>
+    </table>
+    <p class="hint"><code>autoInit=0</code> 时 <code>danmu.js</code> 仅加载依赖资源，不执行初始化。依赖加载完成后会触发 <code>websitePusherReady</code> 事件并调用 <code>window.onWebsitePusherReady</code> 来配置更多自定义参数，参见 <a href="../index.html" target="_blank" rel="noopener">首页文档</a>。</p>
+  </div>
+
+  <div class="card">
+    <h2>插件开发</h2>
+    <p>组件按 <code>plugins=名字</code> 加载 <code>plugins/名字.js</code>；插件文件加载时调用 <code>WebsitePusher.registerPlugin(名字, run)</code> 注册，脚本 onload 后由组件执行 <code>run(settings)</code>。一个自定义插件就是一个 js 文件加一次注册。</p>
+
+    <h3 class="step">1. 新建 plugins/mynote.js</h3>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codePlugin"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codePlugin">(function () {
+    if (typeof WebsitePusher === "undefined" || !WebsitePusher.registerPlugin) {
+        return; // 组件还没加载，先放弃
+    }
+    WebsitePusher.registerPlugin("mynote", function (settings) {
+        // settings 是 init() / 脚本地址传进来的全部参数，所有插件共用
+        console.log("mynote 已启动，通道码=" + settings.channelCode);
+        // 上报一条自定义消息，通道后台「推送记录」里能看到 head=mynote
+        WebsitePusher.pushTrigger("mynote", "hello 自定义插件");
+    });
+})();</pre></div>
+
+    <h3 class="step">2. 加载插件</h3>
+    <p>在脚本地址里写插件名，多个用英文逗号分隔；用 <code>init()</code> 时则写 <code>plugins: "mynote"</code>。</p>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeLoad"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeLoad">&lt;script src="static/js/danmu.js?appName=你的应用名&amp;channelCode=你的通道码&amp;plugins=mynote"&gt;&lt;/script&gt;</pre></div>
+
+    <h3 class="step">3. 想接管消息，就设置消息闸门</h3>
+    <p>闸门返回 <code>true</code> 表示这条消息由插件处理，组件不再把它渲染成弹幕（<code>ad</code> 插件就是这样把广告画到右下角的）：</p>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeGate"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeGate">var origin = settings.danMuMessageCallback; // 先留住原有闸门
+settings.danMuMessageCallback = function (message) {
+    if (message.head === "mynote") {
+        console.log("收到 mynote 消息", message);
+        return true; // 我处理了，不渲染弹幕
+    }
+    return typeof origin === "function" ? origin.call(settings, message) : false;
+};</pre></div>
+
+    <h3 class="step">4. 调试与发布</h3>
+    <ul>
+      <li>插件里的异常会被组件捕获，不影响弹幕/统计主流程，调试看浏览器控制台；</li>
+      <li>上报统一用 <code>WebsitePusher.pushTrigger(head, body)</code>，写完可在通道后台「推送记录」里确认；</li>
+      <li>发布：如果使用你自己部署的 <code>danmu.js</code>，把文件放到 <code>danmu.js</code> 同级的 <code>plugins/</code>（线上为 <code>static/customer/js/plugins/</code>），文件名必须与插件名一致，改完记得强刷缓存；</li>
+      <li>插件目录默认固定，确实要换只能在 <code>init()</code> 里传 <code>pluginsSite</code>（脚本地址不支持）。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>示例页的公共处理</h2>
+    <ul>
+      <li>把 <code>WebsitePusher.pushTrigger</code> 包一层，把 visit/click 等上报打到页面下方的「现场日志」，方便确认插件在工作；</li>
+      <li>日志同时显示组件是否就绪、通道码是否认领成功、上报是否成功；</li>
+      <li>纯 HTML + 原生 JS，不依赖框架，可整段复制下面的引入代码。</li>
+    </ul>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeIntro"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeIntro">&lt;script src="static/js/danmu.js?appName=你的应用名&amp;channelCode=你的通道码&amp;danMu=1&amp;plugins=stat,panel"&gt;&lt;/script&gt;</pre></div>
+  </div>
+
+  <div class="card">
+    <h2>GET 请求触发推送</h2>
+    <p>不想写前端、只想推一条消息时，直接请求下面这个地址即可（返回 <code>code=0</code> 表示成功）。参数说明见 <a href="ad.html" target="_blank" rel="noopener">ad.html</a>。</p>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeGet"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeGet">https://www.phprm.com/services/push/trigger/你的通道码?head=广告&amp;avatar=https://ws.phprm.com/static/demo/images/ad-demo.svg&amp;url=https://push.phprm.com/&amp;hold=30</pre></div>
+    <p class="hint">复制此链接到浏览器地址栏粘贴访问同样可以触发推送。</p>
+  </div>
+</div>
+
+<script>
+  /* code block: auto header + copy button + light syntax highlight */
+  (function () {
+    function esc(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    var TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(function|return|var|let|const|if|else|for|while|new|typeof|true|false|null|undefined)\b|([A-Za-z_$][\w$]*)(?=\s*\()/g;
+  function highlight(src) {
+    src = String(src);
+    TOKEN.lastIndex = 0;
+    var out = "", last = 0, m;
+    while ((m = TOKEN.exec(src)) !== null) {
+      out += esc(src.slice(last, m.index));
+      if (m[1]) {
+        if (src.charAt(m.index - 1) === ":") { out += esc(m[1]); }
+        else { out += '<span class="c">' + esc(m[1]) + '</span>'; }
+      } else if (m[2]) {
+        out += '<span class="s">' + esc(m[2]) + '</span>';
+      } else if (m[3]) {
+        out += '<span class="k">' + esc(m[3]) + '</span>';
+      } else {
+        out += '<span class="fn">' + esc(m[4]) + '</span>';
+      }
+      last = TOKEN.lastIndex;
+    }
+    out += esc(src.slice(last));
+    return out;
+  }
+  function applyHl(body) {
+    var text = body.textContent;
+    if (body.__cbText === text) { return; }
+    body.__cbText = text;
+    body.innerHTML = highlight(text);
+  }
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        if (document.execCommand("copy")) { resolve(); } else { reject(new Error("copy failed")); }
+      } catch (e) {
+        reject(e);
+      }
+      document.body.removeChild(ta);
+    });
+  }
+  function flash(btn, ok) {
+    var label = btn.querySelector("span") || btn;
+    label.textContent = ok ? "\u5df2\u590d\u5236" : "\u590d\u5236\u5931\u8d25";
+    setTimeout(function () { label.textContent = "\u590d\u5236"; }, 1200);
+  }
+  function bind(btn, getText) {
+    if (!btn || btn.getAttribute("data-bound")) { return; }
+    btn.setAttribute("data-bound", "1");
+    btn.addEventListener("click", function () {
+      copyText(getText()).then(function () {
+        flash(btn, true);
+      }, function () {
+        flash(btn, false);
+      });
+    });
+  }
+  var COPY_SVG = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+  function makeBtn() {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cb-btn";
+    btn.innerHTML = COPY_SVG + '<span>\u590d\u5236</span>';
+    return btn;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("code.block"), function (el) {
+    if (el.parentNode && el.parentNode.className && String(el.parentNode.className).indexOf("cb") === 0) { return; }
+    var box = document.createElement("div");
+    box.className = "cb";
+    var head = document.createElement("div");
+    head.className = "cb-head";
+    var dots = document.createElement("span");
+    dots.className = "cb-dots";
+    dots.innerHTML = '<i class="r"></i><i class="y"></i><i class="g"></i>';
+    head.appendChild(dots);
+    head.appendChild(makeBtn());
+    box.appendChild(head);
+    el.parentNode.insertBefore(box, el);
+    box.appendChild(el);
+    el.classList.add("cb-body");
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".cb"), function (box) {
+    var body = box.querySelector(".cb-body");
+    var btn = box.querySelector(".cb-btn");
+    if (body) {
+      applyHl(body);
+      if (window.MutationObserver) {
+        new MutationObserver(function () { applyHl(body); })
+                .observe(body, { childList: true, characterData: true, subtree: true });
+      }
+    }
+    if (btn) {
+      var id = btn.getAttribute("data-copy");
+      bind(btn, function () {
+        var target = id ? document.getElementById(id) : body;
+        return target ? target.textContent : "";
+      });
+    }
+  });
+  })();
+</script>
+</body>
+</html>

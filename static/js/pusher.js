@@ -1,5 +1,6 @@
 /**
  * WebsitePusher —— 一封传话聚合推送 + 弹幕 组件（单文件 IIFE，依赖 jQuery）。
+ * 版本：v1.1.2
  *
  * 接入入口：
  *   WebsitePusher.init(options)
@@ -8,13 +9,36 @@
  *
  * settings（外部契约，key 不可变更）：
  *   基础配置：siteName / apiKey / cssSite(iframe内CSS基础路径) /
- *             jsSite(JS/layui资源基础路径) /
+ *             jsSite(JS/layui/插件默认基础路径) /
+ *             pluginsSite(插件目录, 默认 jsSite/plugins/) /
  *             pcUrl / pushUrl / apiUrl / authUrl /
- *             wsUrl(socket.io地址) / channelMemberUrl(打开推送通道) / appName /
+ *             wsUrl(socket.io地址) / channelMemberUrl(打开推送通道) /
+ *             triggerUrl(触发推送接口, 插件上报用) / appName /
  *             closeText(弹幕关闭按钮自定义文案)
+ *   插件：    plugins(插件名, 英文逗号分隔, 如 "stat" / "stat,foo", 可一次加载多个;
+ *             也兼容写成文件名 "stat.js", 组件会去掉后缀;
+ *             默认空=不加载任何插件, 需要右上角面板时必须显式写上 panel) /
+ *             pluginsSite(插件目录, 默认 jsSite/plugins/; 目录内 name.js 即插件 name) /
+ *             插件加载后调用 WebsitePusher.registerPlugin(name, run) 注册, run(settings) 由组件执行;
+ *             可用的官方插件: stat(访问统计, 每次页面加载触发一条 head=visit 推送,
+ *             元素被点击时再触发一条 head=click 推送, body 为被点元素的点击描述
+ *             (祖先路径 + id/class + 文本片段 + 点击坐标, 不再是整段 outerHTML) /
+ *             axios-report(axios 接口异常, head=axios, body 为异常 JSON) /
+ *             vue-report(Vue2/3/4 异常与警告, head=vue, body 为异常 JSON) /
+ *             ad(广告位: head=广告 的消息不渲染弹幕, 改为右下角广告图, 支持 url/hold) /
+ *             panel(右上角面板: 面板外壳/推送窗口(通道码+登录+获取通道码)/弹幕设置表单/登录窗口,
+ *                   登录态查询/登录提交/验证码/我的提醒列表也在插件内;
+ *                   组件本身不再内置这些 UI, 也不默认加载; 不加载时弹幕走无 UI 的通道认领)
  *   用户态：  channelCode / uid / name / createTime / token / avatar / device /
  *             clientVersion / screenResolution / userPlatformType / userPlatformVersion
- *   行为开关：hideDialog(0/1) / hidePanel(0/1) / danMu(0/1)
+ *   行为开关：hideDialog(0/1) / danMu(0/1; danMu=0 不渲染弹幕与弹幕图标,
+ *             但加载了 ad 插件时仍建立消息流、照常展示广告位)
+ *   插件/宿主上报入口（插件上报统一走这里，避免各插件各自拼请求）：
+ *     WebsitePusher.pushTrigger(head, body, callback)  触发一条推送：
+ *              POST {triggerUrl}{channelCode}, 请求体为 JSON: {head, url, body}；
+ *              正文(body)上限 5 万字符(超出截断), 不占 URL 长度, 也不会被网关按 URL 长度拒绝；
+ *              通道码未认领时先等它就绪(最多10秒)，等不到则放弃并回调 false
+ *     WebsitePusher.waitChannelCode(onReady, onTimeout)  等通道码就绪(200ms 轮询, 默认10秒超时)
  *   弹幕运行时控制（供外部开发者动态开关弹幕）：
  *     WebsitePusher.stopDanMu()   停止弹幕：断开Socket.IO、停AI轮询、清屏，保留token/doc供恢复
  *     WebsitePusher.startDanMu()  启动弹幕：重连Socket.IO、重启AI轮询(依赖stopDanMu前保存的上下文)
@@ -37,6 +61,10 @@
  *     danMuInitCallback(settings)        -> boolean 弹幕初始化闸门，false 则禁用弹幕
  *     danMuSendOpen(settings)            -> any     右下角弹幕图标首次点击时触发(开启弹幕发送)
  *     danMuSendClose(settings)           -> any     右下角弹幕图标再次点击时触发(关闭弹幕发送)
+ *     danMuMessageCallback(message)      -> boolean 原始消息闸门(在拆成弹幕item之前), 入参为后端推来的
+ *                                                   原始 JSON(head/messageId/url/avatar/hold 等都在),
+ *                                                   返回 true 表示调用方已自行处理该消息(例如广告位),
+ *                                                   组件不再渲染这条弹幕; 默认 false
  *     danMuFilter(item)                  -> any     每条弹幕分发入口（默认走过滤链）
  *     danMuFilterCallback(item, cb)      -> any     按 item.id 去重 + info 非空校验，通过后
  *                                                   先回调 cb(selector, item) 让调用方设置
@@ -50,8 +78,9 @@
  *                                                   随 params.pollCount 上报后端
  *
  * 弹幕分发链路（一条消息的完整流程）：
- *   后端消息 -> buildBarragerItem(套用danMuSetting默认值) -> danMuFilter -> danMuFilterCallback(去重/校验)
- *   -> danMuPopCallback(设置onAction) -> $(selector).barrager(item) 渲染 -> 交互走 jquery.barrager.js
+ *   后端消息 -> danMuMessageCallback(原始消息闸门, true则整条跳过) -> buildBarragerItem(套用danMuSetting默认值)
+ *   -> danMuFilter -> danMuFilterCallback(去重/校验) -> danMuPopCallback(设置onAction)
+ *   -> $(selector).barrager(item) 渲染 -> 交互走 jquery.barrager.js
  *
  * 持久化：
  *   appKey       服务端鉴权契约，随 withCredentials 发送，勿改名
@@ -72,322 +101,6 @@
  *   setDanMuArea(ratio) 设置弹幕显示区域比例
  */
 try {
-    /* ===== 0-1. 全局兜底: 清除泄漏的 layui-layer-move 遮罩 (layui layer 拖动中鼠标在窗口外松开时遮罩不清理) ===== */
-    (function () {
-        // 清理函数: 若检测到 .layui-layer-move 泄漏 (当前鼠标未按下 + 延迟 300ms 仍然存在), 直接删除 DOM
-        var timer = null;
-        function removeLayerMove() {
-            $(".layui-layer-move").each(function () {
-                try {
-                    this.parentNode && this.parentNode.removeChild(this);
-                } catch (e) {}
-            });
-        }
-        function tryClear(e) {
-            if (!$(".layui-layer-move").length) return;
-            // event.buttons 存在时: bit1 为 1 表示左键正按下 (真正在拖动), 不清理
-            var pressing = e && typeof e.buttons === "number" ? e.buttons & 1 : 0;
-            if (pressing) return;
-            // 鼠标已松开 → 延迟 300ms 后再删 (避免真正的拖动中 mousemove 短暂出现 buttons=0 的误删)
-            if (timer) return;
-            timer = setTimeout(function () {
-                timer = null;
-                removeLayerMove();
-            }, 300);
-        }
-        // 任意用户交互事件均触发检查 (覆盖: 拖出窗口外松开后回来、Alt-Tab 回窗口、点击、滚动等)
-        $(document).on(
-            "mouseup mousemove click dblclick focusin keydown mouseenter mouseover",
-            tryClear,
-        );
-        $(window).on("blur focus resize scroll", tryClear);
-        // 失焦/最小化时如果存在 move 遮罩 → 立即删 (离开页面不可能还在拖动)
-        $(window).on("blur visibilitychange pagehide", function () {
-            if (timer) {
-                clearTimeout(timer);
-                timer = null;
-            }
-            removeLayerMove();
-        });
-    })();
-
-    /* ===== 0. bg_move：可拖拽 / 可缩放 / 吸边（edge-snap）面板插件，挂到 jQuery.fn.bg_move ===== */
-    (function () {
-        function b(t, s) {
-            this.t = t;
-            this.opts = s;
-            this.c = t.find(s.move).first();
-            this.cs = t.find(s.closed).first();
-            this.m = false;
-            this.s = false;
-            this.hide = 5;
-            this.size_bg = s.size;
-            this.init();
-        }
-        b.prototype = {
-            init: function () {
-                var t = this;
-                t.box_sizing = t.t.css("box-sizing");
-                t.top = t.t.offset().top - $(window).scrollTop();
-                t.left = t.t.offset().left - $(window).scrollLeft();
-                t.height = t.t.outerHeight();
-                t.width = t.t.outerWidth();
-                t.w_width = $(window).width();
-                t.w_height = $(window).height();
-                if (t.box_sizing != "border-box") {
-                    t.c_width = t.width - t.t.width();
-                    t.c_height = t.height - t.t.height();
-                } else {
-                    t.c_width = 0;
-                    t.c_height = 0;
-                }
-                t.t.css({
-                    "max-height": t.w_height - t.c_height,
-                    "max-width": t.w_width - t.c_width,
-                    position: "fixed",
-                });
-                $(window).resize(function () {
-                    t.w_width = $(window).width();
-                    t.w_height = $(window).height();
-                    if (t.box_sizing != "border-box") {
-                        t.c_width = t.width - t.t.width();
-                        t.c_height = t.height - t.t.height();
-                    } else {
-                        t.c_width = 0;
-                        t.c_height = 0;
-                    }
-                    if (t.t.width() > t.w_width - t.c_width) {
-                        t.t.width(t.w_width - t.c_width);
-                    }
-                    if (t.t.height() > t.w_height - t.c_height) {
-                        t.t.height(t.w_height - t.c_height);
-                    }
-                    t.t.css({
-                        "max-height": t.w_height - t.c_height,
-                        "max-width": t.w_width - t.c_width,
-                    });
-                    t.height = t.t.outerHeight();
-                    t.width = t.t.outerWidth();
-                    if (t.width + t.left >= t.w_width) {
-                        t.left = t.w_width - t.width;
-                        if (parseInt(t.t.css("left")) < 0) {
-                            t.t.css("left", -t.width + t.hide);
-                        } else if (parseInt(t.t.css("left")) > t.w_width - t.width) {
-                            t.t.css("left", t.w_width - t.hide);
-                        } else {
-                            t.t.css("left", t.left);
-                        }
-                    }
-                    if (t.height + t.top >= t.w_height) {
-                        t.top = t.w_height - t.height;
-                        if (parseInt(t.t.css("top")) < 0) {
-                            t.t.css("top", -t.height + t.hide);
-                        } else {
-                            t.t.css("top", t.top);
-                        }
-                    }
-                });
-                t.move();
-                t.size();
-            },
-            move: function () {
-                var t = this;
-                t.cs.on("mousedown", function (e) {
-                    // 阻止拖动传播（点关闭按钮不触发面板位置变化）
-                    e.stopPropagation();
-                    // 优先调用外部传入的关闭回调；无回调时保持原有吸顶行为（向后兼容）
-                    if (typeof t.opts.onClosed === "function") {
-                        try {
-                            t.opts.onClosed(t.t);
-                        } catch (e) {}
-                    } else {
-                        t.top = 0;
-                        t.right = 0;
-                        t.t.animate({ top: 0, right: 0 }, 300, function () {
-                            t.top_animate();
-                        });
-                    }
-                    return false;
-                });
-                t.c.on("mousedown", function (e) {
-                    t.m = true;
-                    t.x = e.pageX;
-                    t.y = e.pageY;
-                    t.height = t.t.outerHeight();
-                    t.width = t.t.outerWidth();
-                    // 拖动期间禁用 iframe 指针事件，避免 iframe 吞掉 mousemove 导致拖动卡顿
-                    t.t.find("iframe").css("pointer-events", "none");
-                    var onMove = function (e) {
-                        t.left2 = t.left + e.pageX - t.x;
-                        t.top2 = t.top + e.pageY - t.y;
-                        if (t.left2 <= 0) {
-                            t.left2 = 0;
-                        } else if (t.left2 >= t.w_width - t.width) {
-                            t.left2 = t.w_width - t.width;
-                        }
-                        if (t.top2 <= 0) {
-                            t.top2 = 0;
-                        } else if (t.top2 >= t.w_height - t.height) {
-                            t.top2 = t.w_height - t.height;
-                        }
-                        t.t.css({ top: t.top2, left: t.left2 });
-                        return false;
-                    };
-                    var endMove = function (ev) {
-                        if (!t.m) return; // 兜底事件可能多次触发, 只清一次
-                        var pageX =
-                            ev && typeof ev.pageX === "number" ? ev.pageX : t.x + t.left;
-                        var pageY =
-                            ev && typeof ev.pageY === "number" ? ev.pageY : t.y + t.top;
-                        t.top = t.t.offset().top - $(window).scrollTop();
-                        t.left = t.t.offset().left - $(window).scrollLeft();
-                        if (t.top == 0 && t.leave(pageX, pageY)) {
-                            t.top_animate();
-                        } else if (t.left == 0 && t.leave(pageX, pageY)) {
-                            t.left_animate();
-                        } else if (t.left == t.w_width - t.width && t.leave(pageX, pageY)) {
-                            t.right_animate();
-                        }
-                        t.t.find("iframe").css("pointer-events", "");
-                        $(document).off("mousemove", onMove);
-                        $(document).off("mouseup", endMove);
-                        $(window).off("blur", endMove);
-                        $(document).off("mouseleave", endMove);
-                        $(window).off("pointercancel", endMove);
-                        t.m = false;
-                    };
-                    $(document).on("mousemove", onMove);
-                    $(document).on("mouseup", endMove);
-                    // 兜底: 拖动中鼠标离开浏览器窗口再松开 / Alt-Tab 切走 / 指针取消 (触屏/触控板) → 一律结束拖动
-                    $(window).on("blur", endMove);
-                    $(document).on("mouseleave", endMove);
-                    $(window).on("pointercancel", endMove);
-                    return false;
-                });
-                t.t.on("mouseleave", function () {
-                    if (!t.t.is(":animated") && !t.m && !t.s) {
-                        if (t.top == 0) {
-                            t.top_animate();
-                        } else if (t.left == 0) {
-                            t.left_animate();
-                        } else if (t.left == t.w_width - t.width) {
-                            t.right_animate();
-                        }
-                    }
-                });
-            },
-            size: function () {
-                var t = this;
-                t.t.append('<span class="bg_change_size">&nbsp;</span>');
-                t.sz = t.t.find(".bg_change_size").first();
-                t.sz.css({
-                    position: "absolute",
-                    right: 0,
-                    bottom: 0,
-                    display: "block",
-                    width: t.size_bg + "px",
-                    height: t.size_bg + "px",
-                    cursor: "nw-resize",
-                });
-                t.sz.on("mousedown", function (e) {
-                    t.s = true;
-                    t.old_width = t.t.width();
-                    t.old_height = t.t.height();
-                    t.old_size_x = e.pageX;
-                    t.old_size_y = e.pageY;
-                    // 缩放期间禁用 iframe 指针事件，避免 iframe 吞掉 mousemove
-                    t.t.find("iframe").css("pointer-events", "none");
-                    $(document).on("mousemove", function (e) {
-                        t.new_width = e.pageX - t.old_size_x + t.old_width;
-                        t.new_height = e.pageY - t.old_size_y + t.old_height;
-                        t.t.width(t.new_width);
-                        t.t.height(t.new_height);
-                        if (t.t.outerHeight() + t.top >= t.w_height) {
-                            t.t.height(t.w_height - t.top - t.c_height);
-                        }
-                        if (t.t.outerWidth() + t.left >= t.w_width) {
-                            t.t.width(t.w_width - t.left - t.c_width);
-                        }
-                        return false;
-                    });
-                    $(document).on("mouseup", function () {
-                        t.height = t.t.outerHeight();
-                        t.width = t.t.outerWidth();
-                        t.s = false;
-                        t.t.find("iframe").css("pointer-events", "");
-                        $(document).off("mousemove");
-                        $(document).off("mouseup");
-                    });
-                    return false;
-                });
-            },
-            leave: function (xx, yy) {
-                var t = this;
-                if (
-                    xx >= t.t.offset().left &&
-                    xx <= t.t.offset().left + t.width &&
-                    yy >= t.t.offset().top &&
-                    yy <= t.t.offset().top + t.height
-                ) {
-                    return false;
-                } else {
-                    return true;
-                }
-            },
-            top_animate: function () {
-                var t = this;
-                t.t.animate({ top: -t.height + t.hide }, 300, function () {
-                    t.t.one("mouseenter", function () {
-                        t.t.stop(true).animate({ top: 0 }, 300);
-                    });
-                });
-            },
-            left_animate: function () {
-                var t = this;
-                t.t.animate({ left: -t.width + t.hide }, 300, function () {
-                    t.t.one("mouseenter", function () {
-                        t.t.stop(true).animate({ left: 0 }, 300);
-                    });
-                });
-            },
-            right_animate: function () {
-                var t = this;
-                t.t.animate({ left: t.w_width - t.hide }, 300, function () {
-                    t.t.one("mouseenter", function () {
-                        t.t.stop(true).animate({ left: t.w_width - t.width }, 300);
-                    });
-                });
-            },
-            restore: function () {
-                var t = this;
-                t.t.stop(true, true);
-                // 清除吸边动画绑定的 mouseenter 恢复回调，避免手动恢复后鼠标移入触发多余动画
-                t.t.off("mouseenter");
-                var inlineLeft = t.t[0].style.left;
-                var parsed = parseInt(inlineLeft);
-                // 未拖动过（初始/hidePanel 模式 inlineLeft 为空）或被吸边（left 在屏幕外）→ 恢复到右侧默认位置
-                if (!inlineLeft || parsed < 0 || parsed > t.w_width - t.width) {
-                    t.t.css({ left: "", right: "12px", top: "8px" });
-                    t.top = t.t.offset().top - $(window).scrollTop();
-                    t.left = t.t.offset().left - $(window).scrollLeft();
-                } else {
-                    // 面板在可见区域 → 恢复到上次 mouseup 记录的位置
-                    t.t.css({ top: t.top, left: t.left, right: "" });
-                }
-            },
-        };
-        var y = {
-            move: ".title",
-            closed: ".close",
-            size: 0,
-        };
-        $.fn.bg_move = function (bg) {
-            var cfg = $.extend({}, y, bg);
-            return $(this).each(function () {
-                $(this).data("bg_move", new b($(this), cfg));
-            });
-        };
-    })(jQuery);
     /* ======================= WebsitePusher 组件主体（扁平方法 + 分区） ======================= */
     // IIFE 包裹: site 等内部常量留在闭包内不污染宿主 window, 仅 WebsitePusher 作为对外入口暴露
     var WebsitePusher = (function () {
@@ -405,6 +118,15 @@ try {
                 authUrl: "https://www.phprm.com/oauth2",
                 wsUrl: "https://2120ws.phprm.com",
                 channelMemberUrl: "https://ws.phprm.com/api/channelMember.php",
+                // 触发推送接口前缀(插件/宿主上报用): POST {triggerUrl}/{channelCode}, 请求体 JSON
+                triggerUrl: "https://www.phprm.com/services/push/trigger/",
+                // 插件目录: 目录内每个 name.js 即插件 name, 由 settings.plugins 指定要加载的插件
+                pluginsSite: site + "customer/js/plugins/",
+                // 插件名, 英文逗号分隔(如 "stat" 或 "stat,foo"), 可一次加载多个;
+                // 默认空=一个插件都不加载; 右上角面板(推送窗口/登录窗口/弹幕设置)已拆到
+                // plugins/panel.js, 需要面板时显式写 plugins: "panel"(可和别的插件并用 "stat,panel");
+                // 不加载 panel 时组件不创建任何面板, 通道认领与弹幕走无 UI 的 initChannel()
+                plugins: "",
                 appName: "弹幕",
                 channelCode: "",
                 channelName: "",
@@ -417,11 +139,10 @@ try {
                 avatar: "",
                 device: "",
                 clientVersion: "1.0",
-                screenResolution: "1080,720",
+                screenResolution: "",
                 userPlatformType: "",
                 userPlatformVersion: "",
                 hideDialog: 0,
-                hidePanel: 0,
                 danMu: 0,
                 closeText: "关闭",
                 danMuSetting: {
@@ -441,6 +162,11 @@ try {
                 // 上一次推送成功的messageIdList和容量限制
                 messageIdList: new Array(),
                 messageLength: 20,
+                // 弹幕运行态: 暂停标记 / 暂停期间待渲染队列 / 去重用的 id 表(见 danMuFilterCallback)
+                danMuPaused: false,
+                danMuQueue: null,
+                danMuSeenIds: null,
+                danMuSeenCount: 0,
                 sendCallback: function (item, settings) {
                     return true;
                 },
@@ -450,6 +176,11 @@ try {
                 danMuInitCallback: function (settings) {
                     // 这里可以插入网站启动弹幕send API, 当设置return false即使用户配置和url参数开启弹幕依然无法启用弹幕
                     return true;
+                },
+                danMuMessageCallback: function (message) {
+                    // 原始消息闸门: 在拆成弹幕item之前拿到完整JSON(head/url/avatar/hold等),
+                    // return true 表示调用方已自行处理该消息(例如广告位), 组件不再渲染这条弹幕
+                    return false;
                 },
                 danMuSendOpen: function (settings) {
                     // 弹幕发送开启回调, 点击右下角图标第一次触发
@@ -557,7 +288,7 @@ try {
                             if (resp.code == 0 && resp.data) {
                                 var data = resp.data;
                                 if (!data["aiRestAmount"] || data["aiRestAmount"] <= 0) {
-                                    $(doc).find("#aiDanMuGroup").hide();
+                                    _this.openPanel("setAiDanMuGroup", [doc, false]);
                                     return;
                                 }
                                 if (s.messageIdList.length > s.messageLength) {
@@ -579,6 +310,40 @@ try {
                     );
                 }
             },
+            /* ===== 实例状态(数据成员统一放在所有方法之前, 方法只读写这里声明的字段) ===== */
+            /**
+             * 面板实例(由 panel 插件注册, 见 plugins/panel.js):
+             * { openPusherWindow, openLoginWindow, toggle, addChannelInput, initDanMuConfigForm, setAiDanMuGroup }
+             * 组件不再内置右上角面板/推送窗口/登录窗口的 DOM、事件绑定与登录逻辑,
+             * 未加载 panel 插件时为 null, 相关入口不会创建任何面板
+             */
+            panel: null,
+            // 插件注册表: name -> run(settings), 与 settings.plugins(配置的插件名)区分开
+            pluginsRegistry: {},
+            // 已加载过的插件名: 同一插件在页面内只注入/执行一次
+            loadedPlugins: {},
+            // 弹幕配置持久化的 localStorage/cookie key
+            DK: "pusher_danmu_config",
+            // 设备ID持久化的 localStorage/cookie key
+            DEK: "pusher_device_id",
+            // 当前通道的 Socket.IO 连接与令牌(danMuPop 建立, closePusher/stopDanMu 断开)
+            danMuSocket: null,
+            danMuSocketToken: null,
+            // AI 弹幕轮询定时器
+            danMuTimer: null,
+            // 最近一次弹幕所在的文档(面板 iframe 或宿主 document), AI 轮询恢复时用
+            danMuDoc: null,
+            // 当前通道的 websocket 地址(服务端下发, 未下发时回退 settings.wsUrl)
+            channelWsUrl: "",
+            // 弹幕外观配置缓存(danMuPop 每次渲染时读取)
+            cfgCache: null,
+            // 已初始化的 appName(单例保护) 与 init 代次(并发 init 竞态)
+            _initedAppName: null,
+            _initGen: 0,
+            // 插件脚本加载中的批次数(>0 表示插件还没就绪) 与等待插件就绪的回调队列
+            pluginsLoading: 0,
+            pluginsCallbacks: null,
+
             resetSettings: function () {
                 var s = this.settings;
                 s.channelCode = "";
@@ -595,7 +360,10 @@ try {
                 var appName = this.getUrlParam("appName") || s.appName;
                 var device = this.getUrlParam("device") || s.device;
                 var version = this.getUrlParam("clientVersion") || s.clientVersion;
-                var screenResolution = this.getUrlParam("screenResolution") || s.screenResolution;
+                // 优先级: URL 参数 > init options 传入 > 读取真实屏幕
+                // 注意不能写成 getUrlParam(...) || s.screenResolution, 默认值非空会让下面的
+                // 真实屏幕读取分支永不执行, 导致所有接入方都上报默认值
+                var screenResolution = this.getUrlParam("screenResolution");
                 if (appName) {
                     s.appName = appName;
                 }
@@ -607,8 +375,9 @@ try {
                 }
                 if (screenResolution) {
                     s.screenResolution = screenResolution;
-                } else {
-                    // URL 参数未携带分辨率时, 用 JS 读取屏幕宽高 (逗号分隔, 与其他来源格式一致)
+                }
+                // URL 参数和 init options 都未提供分辨率时, 读取真实屏幕宽高 (逗号分隔, 与其他来源格式一致)
+                if (!s.screenResolution) {
                     try {
                         var w =
                             window.screen && window.screen.width
@@ -628,6 +397,9 @@ try {
                     s.userPlatformType = explorerInfo["type"];
                     s.userPlatformVersion = explorerInfo["version"];
                 }
+                // 加载插件目录中的插件(settings.plugins 指定); 放在设备/登录分支之前,
+                // 保证插件不依赖 device/token 也能执行(如访问统计只需 channelCode)
+                _this.loadPlugins();
                 // settings 内存对象已保存所有字段, 无需再镜像到 DOM hidden input
                 if (s.uid && s.token) {
                     if (callback) {
@@ -785,480 +557,42 @@ try {
                 } catch (error) {}
                 return browser;
             },
-            styleIframe: function () {
-                if (document.all) {
-                    var sheet = document.createStyleSheet();
-                    sheet.addRule("iframe", "max-height: 2000px;margin-top:-3px");
-                } else {
-                    var style = document.createElement("style");
-                    style.type = "text/css";
-                    style.innerHTML = "iframe{ max-height: 2000px;margin-top:-3px }";
-                    document.getElementsByTagName("HEAD").item(0).appendChild(style);
+            /**
+             * 转发到 panel 插件的方法(插件未加载时返回 false)
+             */
+            openPanel: function (method, args) {
+                var panel = this.panel;
+                if (!panel || typeof panel[method] != "function") {
+                    return false;
                 }
+                return panel[method].apply(panel, args || []);
             },
-            buildPanel: function (panelId, closeCallback, onClosed) {
-                var panelStyle = "";
-                if (this.settings.hidePanel == 1) {
-                    panelStyle = "display:none";
-                }
-                var div = document.createElement("div");
-                div.id = panelId;
-                div.style.cssText =
-                    "position:fixed;_position:absolute;right:12px;top:8px;_top:expression(eval(documentElement.scrollTop+8));width:460px;z-index:2147483647;border-width:0px;user-select:none;" +
-                    panelStyle;
-                var s = this.settings.cssSite;
-                div.innerHTML =
-                    '<div class="topbjcl" style="user-select:none;cursor:move;height:33px;background-image:url(' +
-                    s +
-                    'images/1.gif);background-repeat:repeat-x;border:1px solid #d8d8d8;border-bottom:none">' +
-                    '<div style="padding-top:5px;padding-left:20px;float:left;color:#555;font-family:Arial,Helvetica,sans-serif;font-size:12px;">' +
-                    '<span class="logo-text">' +
-                    this.settings.siteName +
-                    "</span>" +
-                    "</div>" +
-                    '<div style="cursor:pointer;float:right;padding-right:10px;padding-top:3px">' +
-                    '<span title="关闭"><img class="pusher-close-btn" src="' +
-                    s +
-                    'images/4.gif" /></span>' +
-                    "</div>" +
-                    "</div>" +
-                    '<div style="width:470px;padding:0px;" class="ydnwc-dialog">' +
-                    closeCallback +
-                    "</div>";
-                document.body.appendChild(div);
-                $("#" + div.id).bg_move({
-                    move: ".topbjcl",
-                    closed: ".pusher-close-btn",
-                    size: 6,
-                    onClosed: onClosed,
-                });
-                return div;
-            },
-            buildPusherWindowHtml: function () {
-                var s = this.settings,
-                    ds = s.danMuSetting;
-                return (
-                    "<!DOCTYPE html><html>" +
-                    "<head>" +
-                    '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />' +
-                    "<title></title>" +
-                    '<link href="' +
-                    s.cssSite +
-                    'pusher.css" rel="stylesheet" type="text/css" />' +
-                    "</head>" +
-                    '<body style="margin:0px;padding:0px;">' +
-                    '<div class="main">' +
-                    '<div class="main-pusher" style="display: none">' +
-                    '<div class="channel-input" id="channelInput">' +
-                    '<div style="height:33px">' +
-                    '<div class="lf" style="padding-top:8px">请输入您的通道码然后点击 ”打开推送通道 ”按钮</div>' +
-                    '<div class="rt lan360" style="padding-top:8px"></div>' +
-                    "</div>" +
-                    '<div id="channelMsg" class="msg"></div>' +
-                    '<div class="channel-group">' +
-                    '<span style="clear:both;position:relative">' +
-                    '<input type="text" class="serchpt channelCode" name="channelCode" spellcheck="false" placeholder="通道码/口令"/>' +
-                    "</span>" +
-                    '<span class="pusher-button"><button class="btn btn-primary" width="105" height="35">打开推送通道</button></span>' +
-                    "</div>" +
-                    '<div class="form-button">\n' +
-                    '<input type="button" name="add" value="增加更多通道" class="add-button btn" />\n' +
-                    "</div>" +
-                    "</div>" +
-                    '<div style=" text-align:center; padding-top:153px; height:38px;"><img src="' +
-                    s.cssSite +
-                    'images/26.gif" width="434" height="7" /></div>' +
-                    '<div style=" text-align:center; height:38px;">' +
-                    '<div class="footer">' +
-                    '<a href="javascript:void(0)" class="nav-button loginButton" target="_self"></a>' +
-                    '<a href="' +
-                    s.pushUrl +
-                    "/host.html?type=obtain&from=danMu" +
-                    '" class="nav-button" target="_blank">获取通道码</a>' +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    '<div class="main-config" style="display: none">' +
-                    '<div class="danmu-config" id="danmuConfig">' +
-                    '<div style="height:33px">' +
-                    '<div class="lf" style="padding-top:8px">弹幕设置</div>' +
-                    '<div class="rt lan360" style="padding-top:8px"></div>' +
-                    "</div>" +
-                    '<div id="danmuMsg" class="msg"></div>' +
-                    '<form class="form-horizontal">' +
-                    '<div class="form-group">' +
-                    '<label class="col-sm-2 control-label">不透明度</label>' +
-                    '<div class="col-sm-2">' +
-                    '<input type="text" value="" name="opacity" class="form-control" placeholder="' +
-                    ds.opacity +
-                    '" value="' +
-                    ds.opacity +
-                    '"  />' +
-                    "</div>" +
-                    '<label class="col-sm-2 control-label">大小(px)</label>' +
-                    '<div class="col-sm-2">' +
-                    '<input  class="form-control" name="size" type="text" placeholder="' +
-                    ds.size +
-                    '" value="' +
-                    ds.size +
-                    '" />' +
-                    "</div>" +
-                    "</div>" +
-                    '<div class="form-group">' +
-                    '<label class="col-sm-2 control-label">速度</label>' +
-                    '<div class="col-sm-2">' +
-                    '<input  class="form-control" name="speed" type="text" placeholder="' +
-                    ds.speed +
-                    '" value="' +
-                    ds.speed +
-                    '" />' +
-                    "</div>" +
-                    '<label class="col-sm-2 control-label">' +
-                    s.closeText +
-                    "</label>" +
-                    '<div class="col-sm-2">' +
-                    '<input  class="form-control" name="close" type="checkbox" ' +
-                    (ds.close ? "checked" : "") +
-                    " />" +
-                    "</div>" +
-                    "</div>" +
-                    '<div class="form-group">' +
-                    '<label class="col-sm-2 control-label">高度</label>' +
-                    '<div class="col-sm-3">' +
-                    '<label class="radio-inline">' +
-                    '<input type="radio" name="bottomradio" value="0" ' +
-                    (ds.bottomradio == 0 ? 'checked="checked"' : "") +
-                    " /> 随机" +
-                    "</label>" +
-                    '<label class="radio-inline">' +
-                    '<input type="radio" name="bottomradio" value="1" ' +
-                    (ds.bottomradio == 1 ? 'checked="checked"' : "") +
-                    " />设置" +
-                    "</label>" +
-                    "</div>" +
-                    '<div class="col-sm-1" >&nbsp;</div>' +
-                    '<div class="col-sm-2">' +
-                    '<input class="form-control" name="bottom" type="text" placeholder="' +
-                    ds.bottom +
-                    '"  value="' +
-                    ds.bottom +
-                    '" />' +
-                    "</div>" +
-                    "</div>" +
-                    '<div class="form-group" id="aiDanMuGroup">' +
-                    '<label class="col-sm-2 control-label">AI弹幕</label>' +
-                    '<div class="col-sm-3">' +
-                    '<label class="radio-inline">' +
-                    '<input type="radio" name="airadio" value="0" ' +
-                    (ds.aiDanMu > 0 ? "" : 'checked="checked"') +
-                    " /> 关闭" +
-                    "</label>" +
-                    '<label class="radio-inline">' +
-                    '<input type="radio" name="airadio" value="1" ' +
-                    (ds.aiDanMu > 0 ? 'checked="checked"' : "") +
-                    " />间隔" +
-                    "</label>" +
-                    "</div>" +
-                    '<div class="col-sm-1" >&nbsp;</div>' +
-                    '<div class="col-sm-2">' +
-                    '<input class="form-control" name="aiDanMu" type="text" placeholder="30"  value="' +
-                    (ds.aiDanMu > 0 ? ds.aiDanMu : "") +
-                    '" />' +
-                    "</div>" +
-                    "</div>" +
-                    "</form>" +
-                    "</div>" +
-                    '<div style=" text-align:center; height:38px;"><img src="' +
-                    s.cssSite +
-                    'images/26.gif" width="434" height="7" /></div>' +
-                    '<div style=" text-align:center; height:38px;">' +
-                    '<div class="footer">' +
-                    '<a href="javascript:void(0)" class="nav-button saveButton" target="_self">保存</a>' +
-                    '<a href="javascript:void(0)" class="nav-button resetButton" target="_self">重置</a>' +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    '<div style=" text-align:center; height:38px;margin-top: 70px">' +
-                    '<div class="footer">' +
-                    '<a href="javascript:void(0)" class="nav-button" id="loading" target="_self">加载中...</a>' +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    "</body></html>"
-                );
-            },
+            /**
+             * 打开推送窗口(右上角面板): 通道码覆盖/单例清理在组件, 面板UI与事件绑定在 panel 插件;
+             * 未加载 panel 插件时不建任何 UI, 只认领通道并启动弹幕(见 initChannel)
+             * @param {Boolean} checkLoginStatus 是否自动查询登录态(用户点匿名推送时传 false)
+             * @param {String} [channelCode] 本次 init 传入的通道码(覆盖共享 s.channelCode, 防并发 init 竞态)
+             */
             initPusherWindow: function (checkLoginStatus, channelCode) {
-                var _this = this;
-                var s = _this.settings;
+                var s = this.settings;
                 // 用本次 init 传入的 channelCode 覆盖共享 s.channelCode, 防止并发 init 竞态
                 // 未传 channelCode(undefined) 时按空字符串处理, 确保走 if(!s.channelCode) 分支不请求
                 s.channelCode = channelCode || "";
-                _this.closePusher(true);
-                _this.closeLogin();
-                this.buildPanel(
-                    "pushWebAnonymous",
-                    '<div id="pusherNewWindow" style="width:470px;padding:0px;" class="ydnwc-dialog"><div id="pusherViewLogin" style="width:470px;height:490px;"></div></div>',
-                    function () {
-                        _this.closePusher();
-                    },
-                );
-                var frameHtml =
-                    "<iframe frameborder='0' src=\"javascript:void((function(){var d=document;d.open();document.domain='" +
-                    document.domain +
-                    "';d.write('');d.close()})())\" scrolling='no' width='470' height='490' id='pusherFrame' allowtransparency></iframe>";
-                $("#pusherViewLogin").html(frameHtml);
-                var frame = $("#pusherFrame")[0];
-                try {
-                    var doc = frame.contentWindow.document;
-                    var $doc = $(doc);
-                    doc.open();
-                    var html = _this.buildPusherWindowHtml();
-                    doc.write(html);
-                    doc.close();
-
-                    $doc.find("#loading").text("正在加载中...");
-                    $doc.find(".main").fadeIn(100, function () {
-                        $doc.find("#loading").hide();
-                        $doc.find(".main-pusher").fadeIn(100);
-                        // checkLoginStatus: init()传true检查登录态; 用户点"匿名推送"传false不自动跳转
-                        // 弹幕模式下推送窗口不自动检查登录态(避免弹幕初始化时跳转登录窗口), 但unlogin打开的登录窗口仍需检查
-                        if (checkLoginStatus && !s.hidePanel && s.danMu != 1) {
-                            _this.checkLoginStatus(doc, function (resp) {
-                                var data = resp.data;
-                                if (data && data["userInfo"]) {
-                                    $doc
-                                        .find(".loginButton")
-                                        .text("用户" + data["nickname"] + "已登录");
-                                    _this.loginSuccess($doc.find(".main-login"));
-                                    _this.unlogin($doc.find(".loginButton").get(0));
-                                } else {
-                                    _this.logout($doc.find(".main-pusher").get(0));
-                                }
-                            });
-                        } else {
-                            $doc.find(".loginButton").text("登录账户");
-                        }
-                    });
-
-                    $doc.find(".loginButton").click(function () {
-                        _this.unlogin(this);
-                    });
-                    $doc.find(".saveButton").click(function () {
-                        if (_this.danMuTimer) {
-                            window.clearTimeout(_this.danMuTimer);
-                        }
-                        var $form = $doc.find("#danmuConfig form");
-                        var num = function (name, def) {
-                            var v = $form.find("input[name=" + name + "]").val();
-                            return isNaN(v) ? def : Math.ceil(v);
-                        };
-                        var opacity = num("opacity", 100);
-                        var size = num("size", 20);
-                        var speed = num("speed", 16);
-                        var close = $form.find("input[name=close]").is(":checked");
-                        var bottomradio = $form
-                            .find("input[name='bottomradio']:checked")
-                            .val();
-                        var airadio = $form.find("input[name='airadio']:checked").val();
-                        var bottom = num("bottom", 0);
-                        var aiSec = num("aiDanMu", 0);
-                        // AI弹幕: airadio=间隔 且秒数合法(1~600, 非法按默认30)时为轮询秒数, 否则0=关闭
-                        var aiDanMu =
-                            airadio == 1 ? (aiSec < 1 || aiSec > 600 ? 30 : aiSec) : 0;
-                        var json = {
-                            opacity: opacity < 1 || opacity > 100 ? 100 : opacity,
-                            size: size < 8 || size > 33 ? 20 : size,
-                            speed: speed < 1 || speed > 50 ? 16 : speed,
-                            close: close ? 1 : 0,
-                            bottomradio: bottomradio == 1 ? 1 : 0,
-                            bottom:
-                                bottomradio == 1 && (bottom < 1 || bottom > 2000)
-                                    ? 0
-                                    : bottom
-                                    ? bottom
-                                    : 0,
-                            aiDanMu: aiDanMu
-                        };
-                        _this.setDanMuStorage(JSON.stringify(json));
-                        _this.updateCfgCache(json);
-                        // 范围校验配置
-                        var ranges = [
-                            [
-                                opacity,
-                                1,
-                                100,
-                                100,
-                                "弹幕不透明度范围1~100, 已按默认值100保存",
-                                "opacity",
-                            ],
-                            [
-                                size,
-                                6,
-                                33,
-                                20,
-                                "字体大小范围9~33px, 已按默认值20px保存",
-                                "size",
-                            ],
-                            [speed, 1, 50, 16, "弹幕速度范围1~50, 已按默认值16保存", "speed"],
-                            [
-                                bottom,
-                                1,
-                                2000,
-                                0,
-                                "弹幕高度范围1~2000, 已按默认值0保存",
-                                "bottom",
-                            ],
-                        ];
-                        if (bottomradio == 1) {
-                            for (var r = 0; r < ranges.length; r++) {
-                                if (_this.rangeFail.apply(_this, [doc].concat(ranges[r])))
-                                    return;
-                            }
-                        } else {
-                            for (var r2 = 0; r2 < 3; r2++) {
-                                if (_this.rangeFail.apply(_this, [doc].concat(ranges[r2])))
-                                    return;
-                            }
-                        }
-                        if (
-                            airadio == 1 &&
-                            _this.rangeFail(
-                                doc,
-                                aiSec,
-                                1,
-                                600,
-                                30,
-                                "AI弹幕间隔范围1~600, 已按默认值30保存",
-                                "aiDanMu"
-                            )
-                        ) {
-                            s.danMuSetting.aiDanMu = 0;
-                            return;
-                        } else {
-                            s.danMuSetting.aiDanMu = aiDanMu;
-                            if (airadio == 1) {
-                                s.checkAiDanMu(this.ownerDocument);
-                            }
-                        }
-                        _this.showDanMuMsg(doc, "配置已生效");
-                    });
-                    $doc.find(".resetButton").click(function () {
-                        var $form = $doc.find("#danmuConfig form");
-                        var resetFields = [
-                            { sel: "input[name=opacity]", val: "" },
-                            { sel: "input[name=size]", val: "" },
-                            { sel: "input[name=speed]", val: "" },
-                            { sel: "input[name=bottom]", val: "70" },
-                            { sel: "input[name=aiDanMu]", val: "30" },
-                        ];
-                        for (var i = 0; i < resetFields.length; i++) {
-                            $form.find(resetFields[i].sel).val(resetFields[i].val);
-                        }
-                        $form.find("input[name=close]").prop("checked", true);
-                        $form
-                            .find("input[name='bottomradio'][value='0']")
-                            .prop("checked", true);
-                        $form
-                            .find("input[name='airadio'][value='0']")
-                            .prop("checked", true);
-                        _this.showDanMuMsg(doc, "配置已重置");
-                        // 清理上一轮定时器并重新查询AI弹幕
-                        if (_this.danMuTimer) {
-                            window.clearTimeout(_this.danMuTimer);
-                        }
-                        s.danMuSetting.aiDanMu = 0;
-                        _this.removeDanMuStorage();
-                        _this.updateCfgCache({});
-                    });
-                    $doc.find(".channelCode").keyup(function () {
-                        $(this)
-                            .parents(".channel-input")
-                            .find("div[id='channelMsg']")
-                            .text("");
-                    });
-                    $doc.find(".add-button").click(function () {
-                        _this.addChannelInput(this);
-                    });
-                    $doc.find(".pusher-button").click(function () {
-                        _this.openPusherDialog(this);
-                    });
-                    // 从url参数中读取是否传
-                    if (!s.channelCode) {
-                        // 如果当前网址开启了弹幕
-                        var headers = _this.getSignHeaders();
-                        _this.ajaxGet(
-                            s.apiUrl,
-                            {
-                                type: "checkUrlChannelCode",
-                                appKey: "pushBookmark",
-                                referer: window.location.href,
-                                title: document.title,
-                                _t: headers["apiTimestamp"],
-                            },
-                            headers,
-                            function (resp) {
-                                if (resp.code != 0 || !resp.data) {
-                                    return;
-                                }
-                                var data = resp.data;
-                                if (data["channelCode"]) {
-                                    $doc.find(".channelCode:eq(0)").val(data["channelCode"]);
-                                    s.channelCode = data["channelCode"];
-                                    _this.openPusherDialog($doc.find(".channelCode").get(0));
-                                    if (!data["aiRestAmount"] || data["aiRestAmount"] <= 0) {
-                                        $doc.find("#aiDanMuGroup").hide();
-                                    }
-                                }
-                            },
-                            function () {},
-                        );
-                        return;
-                    }
-                    $doc.find(".channelCode:eq(0)").val(s.channelCode);
-                    _this.openPusherDialog($doc.find(".channelCode").get(0));
-                } catch (err) {
-                    console && console.log(err);
+                this.closePusher(true);
+                var panel = this.panel;
+                if (panel && typeof panel["openPusherWindow"] == "function") {
+                    return this.openPanel("openPusherWindow", [checkLoginStatus, channelCode]);
                 }
-            },
-            checkLoginStatus: function (doc, callback) {
-                var _this = this;
-                var $doc = $(doc);
-                $doc.find(".loginButton").text("登录账户");
-                var appKey = this.cookieGet("appKey");
-                if (!appKey) {
-                    return;
-                }
-                var headers = _this.getSignHeaders();
-                _this.ajaxGet(
-                    _this.settings.apiUrl,
-                    { type: "getUserInfo", appKey: appKey, _t: headers["apiTimestamp"] },
-                    headers,
-                    function (resp) {
-                        if (!resp["code"] || !resp["data"] || !resp["data"]["appKey"]) {
-                            $doc.find("#divTodo").hide();
-                            $doc.find("#divLogin").show();
-                        }
-                        if (callback) {
-                            callback(resp);
-                        }
-                    },
-                    function () {
-                        $doc.find("#divTodo").hide();
-                        $doc.find("#divLogin").show();
-                    },
-                    {
-                        beforeSend: function (data) {
-                            $doc.find("#divLogin").hide();
-                            $doc.find("#divTodo").show();
-                        },
-                    },
-                );
+                // 没有 panel 插件: 不建面板, 但通道认领与弹幕不能丢
+                return this.initChannel(channelCode);
             },
             channelMemberFail: function (resp, input, group, channelCodes) {
                 var _this = this;
                 console &&
                 console.error(channelCodes + "查询浏览器通道异常, 无法弹出挂件");
-                if ($("#pushWebAnonymous").is(":hidden")) {
+                // hideDialog=1 时本来就不要弹窗(客服挂件/通道码输入框都不弹), 只把错误文案写到通道码下方;
+                // 否则才按面板是否可见决定弹 layer 输入框(无面板时 #pushWebAnonymous 不存在, is(":hidden") 为 true)
+                if (!this.settings.hideDialog && $("#pushWebAnonymous").is(":hidden")) {
                     $("<link>", {
                         rel: "stylesheet",
                         href: _this.settings.jsSite + "/layer/theme/default/layer.css",
@@ -1358,10 +692,11 @@ try {
                                 .find("input[name='channelCode']")
                                 .val(children[i]["channelCode"]);
                         } else {
-                            _this.addChannelInput(
+                            // 面板 UI 归 panel 插件: 未加载插件时这里是空操作
+                            _this.openPanel("addChannelInput", [
                                 input.find("input[name='add']"),
                                 children[i]["channelCode"],
-                            );
+                            ]);
                         }
                         // 立即自动触发
                         var $pusher = input.find(".pusher-button");
@@ -1385,16 +720,58 @@ try {
                         .text("暂时不支持非浏览器推送方式的通道");
                 }
             },
+            /**
+             * 面板里点"打开推送通道"(或"增加更多通道"后自动触发): 从面板 DOM 取通道码后认领通道
+             * @param {Element} button 面板里的按钮(用于定位 .channel-input / .channel-group)
+             */
             openPusherDialog: function (button) {
-                var _this = this;
-                var s = _this.settings;
                 var input = $(button).parents(".channel-input");
                 var group = $(button).parents(".channel-group");
                 var channelCodes = group.find("input[name='channelCode']").val();
+                return this.claimChannel(channelCodes, input, group, button);
+            },
+            /**
+             * 是否需要建立消息流(Socket.IO 连接):
+             *   1) danMu=1: 正常渲染弹幕;
+             *   2) danMu=0 但加载了 ad 插件: 广告位靠消息流触发, 仍要收消息, 只是不渲染弹幕。
+             */
+            needDanMuStream: function () {
+                var s = this.settings;
+                if (s.danMu == 1) {
+                    return true;
+                }
+                var raw = s.plugins;
+                var names = [];
+                if (typeof raw == "string") {
+                    names = raw.split(",");
+                } else if (raw && typeof raw == "object" && typeof raw.length == "number") {
+                    names = raw;
+                }
+                for (var i = 0; i < names.length; i++) {
+                    var name = String(names[i] == null ? "" : names[i])
+                        .replace(/^\s+|\s+$/g, "")
+                        .replace(/\.js$/i, "");
+                    if (name === "ad") {
+                        return true;
+                    }
+                }
+                return false;
+            },
+            /**
+             * 认领通道(不含 UI): 请求 channelMember 接口, 成功后启动弹幕 / 打开对话框
+             * @param {String} channelCodes 通道码
+             * @param {jQuery} input 面板里的 .channel-input(无面板时传空集)
+             * @param {jQuery} group 面板里的 .channel-group(无面板时传空集)
+             * @param {Element|Document} anchor 用来取 ownerDocument / AI弹幕轮询文档
+             */
+            claimChannel: function (channelCodes, input, group, anchor) {
+                var _this = this;
+                var s = _this.settings;
+                anchor = anchor || document.body || document;
 
                 if (!channelCodes || channelCodes.length == 0) {
                     input.find("div[id='channelMsg']").text("请填写通道码再点击按钮");
-                    return;
+                    return false;
                 }
                 var params;
                 if (s.token) {
@@ -1429,12 +806,15 @@ try {
                         }
                         // danMuPop 在本函数末尾的 channelMemberSuccess 之前执行, 此处先缓存 wsUrl
                         _this.saveWsUrl(resp);
-                        if (s.danMu == 1) {
+                        if (_this.needDanMuStream()) {
                             var danMuInit = s.danMuInitCallback(s);
-                            // 始终创建弹幕悬浮图标、保存DOM和token, 供后续 startDanMu 恢复
-                            _this.initDanMuIcon();
-                            _this.danMuDoc = button.ownerDocument;
-                            _this.initAiDanMu(button);
+                            // 弹幕开关打开时才建弹幕悬浮图标与 AI 轮询;
+                            // danMu=0 只是收消息(如广告位)时不建这些 UI
+                            if (s.danMu == 1) {
+                                _this.initDanMuIcon();
+                                _this.initAiDanMu(anchor);
+                            }
+                            _this.danMuDoc = anchor.ownerDocument || anchor;
                             if (resp.data.pushType == 1) {
                                 _this.danMuSocketToken = resp.data.token;
                                 // danMuInitCallback 返回 false 时不创建 socket 连接
@@ -1446,8 +826,44 @@ try {
                         _this.channelMemberSuccess(resp, input, group, channelCodes);
                     },
                 });
+                return true;
             },
-            /* ===== 弹幕配置：localStorage 读写 / 表单回填 / 缓存 / 保存重置 ===== */
+            /**
+             * 无面板时的通道认领(panel 插件未加载): 只认领通道 + 按 danMu 开关启动弹幕, 不建任何 UI
+             * @param {String} [channelCode] 已知通道码; 未传则按当前网址查(checkUrlChannelCode)
+             */
+            initChannel: function (channelCode) {
+                var _this = this;
+                var s = _this.settings;
+                var $empty = $();
+                var anchor = document.body || document;
+                if (channelCode) {
+                    s.channelCode = channelCode;
+                    return _this.claimChannel(channelCode, $empty, $empty, anchor);
+                }
+                var headers = _this.getSignHeaders();
+                _this.ajaxGet(
+                    s.apiUrl,
+                    {
+                        type: "checkUrlChannelCode",
+                        appKey: "pushBookmark",
+                        referer: window.location.href,
+                        title: document.title,
+                        _t: headers["apiTimestamp"],
+                    },
+                    headers,
+                    function (resp) {
+                        if (resp.code != 0 || !resp.data || !resp.data["channelCode"]) {
+                            return;
+                        }
+                        s.channelCode = resp.data["channelCode"];
+                        _this.claimChannel(s.channelCode, $empty, $empty, anchor);
+                    },
+                    function () {},
+                );
+                return true;
+            },
+            /* ===== 弹幕配置: localStorage 读写 / 缓存 / 保存与重置(表单回填与渲染在 panel 插件) ===== */
             getDanMuConfig: function () {
                 var danMuConfig = this.getDanMuStorage();
                 var json = {};
@@ -1459,18 +875,9 @@ try {
             initAiDanMu: function (button) {
                 var s = this.settings;
                 var cfg = this.getDanMuConfig();
-                // 优先从 button 向上查找; 若 button 所属面板已被替换(并发 init 竞态),
-                // 回退到 button.ownerDocument 全文档查找, 保证 .main-pusher / .main-config 能定位到
+                // button 可能是面板 iframe 里的元素, 也可能是宿主 document.body(无面板),
+                // ownerDocument 为空时回退到宿主 document
                 var doc = button && button.ownerDocument ? button.ownerDocument : document;
-                var mainPusher = $(button).parents(".main-pusher");
-                if (!mainPusher.length) {
-                    mainPusher = $(doc).find(".main-pusher");
-                }
-                var mainConfig = $(button).parents(".main").find(".main-config");
-                if (!mainConfig.length) {
-                    mainConfig = $(doc).find(".main-config");
-                }
-                var $form = mainConfig.find("#danmuConfig form");
                 // aiDanMu 统一来源: 开发者传参 / URL参数 / localStorage (getDanMuConfig 已合并; 0=关, N=间隔秒数)
                 var aiOn = cfg.aiDanMu > 0;
                 if (aiOn) {
@@ -1478,42 +885,12 @@ try {
                         window.clearTimeout(this.danMuTimer);
                     }
                     s.danMuSetting.aiDanMu = cfg.aiDanMu;
-                    $(mainPusher).find("#aiDanMuGroup").show();
-                    s.checkAiDanMu(button.ownerDocument);
+                    s.checkAiDanMu(doc);
                 } else {
                     s.danMuSetting.aiDanMu = 0;
                 }
-                var fields = [
-                    { key: "opacity", val: cfg.opacity, type: "val" },
-                    { key: "size", val: cfg.size, type: "val" },
-                    { key: "speed", val: cfg.speed, type: "val" },
-                    {
-                        key: "close",
-                        val: cfg.close != 0,
-                        type: "prop",
-                        attr: "checked",
-                    },
-                    { key: "bottom", val: cfg.bottom, type: "val" },
-                    { key: "aiDanMu", val: aiOn ? cfg.aiDanMu : "", type: "val" },
-                ];
-                for (var i = 0; i < fields.length; i++) {
-                    var f = fields[i];
-                    if (f.type == "val") {
-                        $form.find("input[name=" + f.key + "]").val(f.val);
-                    } else {
-                        $form.find("input[name=" + f.key + "]").prop(f.attr, f.val);
-                    }
-                }
-                $form
-                    .find("input[name='bottomradio'][value='0']")
-                    .prop("checked", !cfg.bottomradio);
-                $form
-                    .find("input[name='bottomradio'][value='1']")
-                    .prop("checked", !!cfg.bottomradio);
-                $form.find("input[name='airadio'][value='0']").prop("checked", !aiOn);
-                $form.find("input[name='airadio'][value='1']").prop("checked", aiOn);
-                mainPusher.hide();
-                mainConfig.show();
+                // 弹幕设置表单的回填与切页是面板 UI, 交给 panel 插件; 未加载插件时是空操作
+                this.openPanel("initDanMuConfigForm", [doc, cfg, aiOn]);
             },
             parallelLoadScripts: function (scripts, callback) {
                 if (typeof scripts != "object") {
@@ -1524,25 +901,152 @@ try {
                     document.documentElement,
                     s = new Array(),
                     loaded = 0;
+                // 单个脚本无论加载成功还是失败都计入完成次数, 避免其中一个 404 卡住整批回调
+                // (加载多个插件时, 一个插件不可用不应导致其它插件也不执行)
+                var finish = function (script) {
+                    script.onload = script.onreadystatechange = script.onerror = null;
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    loaded++;
+                    if (loaded == scripts.length && typeof callback == "function") {
+                        callback();
+                    }
+                };
                 for (var i = 0; i < scripts.length; i++) {
                     s[i] = document.createElement("script");
                     s[i].setAttribute("type", "text/javascript");
-                    s[i].onload = s[i].onreadystatechange = function () {
-                        //Attach handlers for all browsers
+                    s[i].onload = s[i].onerror = function () {
+                        finish(this);
+                    };
+                    s[i].onreadystatechange = function () {
+                        // IE 用 readyState 判断完成
                         if (
                             navigator.userAgent.indexOf("MSIE") == -1 ||
                             this.readyState == "loaded" ||
                             this.readyState == "complete"
                         ) {
-                            loaded++;
-                            this.onload = this.onreadystatechange = null;
-                            this.parentNode.removeChild(this);
-                            if (loaded == scripts.length && typeof callback == "function")
-                                callback();
+                            finish(this);
                         }
                     };
                     s[i].setAttribute("src", scripts[i]);
+                    // 动态脚本统一声明 UTF-8, 避免 GBK 宿主页面把插件/依赖中的中文读成乱码
+                    s[i].setAttribute("charset", "UTF-8");
                     HEAD.appendChild(s[i]);
+                }
+            },
+            /* ======================= 插件目录 =======================
+             * 插件放在 settings.pluginsSite 目录下, 文件名 = 插件名 + ".js";
+             * settings.plugins 指定要加载的插件名(英文逗号分隔, 可多个), 加载方式:
+             *   1) loadPlugins 动态注入 pluginsSite/name.js
+             *   2) 插件脚本加载时调用 WebsitePusher.registerPlugin(name, run) 注册
+             *   3) 脚本 onload 后由 loadPlugins 执行 run(settings)
+             * 插件内部可读写 WebsitePusher.settings, 也可调用组件对外方法。
+             */
+            registerPlugin: function (name, run) {
+                if (!name || typeof run != "function") {
+                    return;
+                }
+                this.pluginsRegistry[String(name)] = run;
+            },
+            /**
+             * 按 settings.plugins(英文逗号分隔, 可多个) 动态加载插件目录中的 name.js,
+             * 全部加载完成后执行已注册插件; 同一插件名在本实例内只加载一次
+             */
+            loadPlugins: function () {
+                var _this = this;
+                var s = _this.settings;
+                var raw = s.plugins;
+                var names = [];
+                // plugins 支持字符串(英文逗号分隔)或数组
+                if (typeof raw == "string") {
+                    names = raw.split(",");
+                } else if (raw && typeof raw == "object" && typeof raw.length == "number") {
+                    names = raw;
+                }
+                var base = s.pluginsSite || s.jsSite + "/plugins/";
+                var urls = [];
+                var pending = [];
+                for (var i = 0; i < names.length; i++) {
+                    // 去两侧空白, 兼容误写成文件名的情况(stat.js => stat);
+                    // 只接受字母/数字/下划线/中划线, 防止拼出非法或有穿越风险的路径
+                    var name = String(names[i] == null ? "" : names[i])
+                        .replace(/^\s+|\s+$/g, "")
+                        .replace(/\.js$/i, "");
+                    if (!name || !/^[a-zA-Z0-9_-]+$/.test(name)) {
+                        continue;
+                    }
+                    if (_this.loadedPlugins[name]) {
+                        continue;
+                    }
+                    _this.loadedPlugins[name] = true;
+                    urls.push(base + name + ".js");
+                    pending.push(name);
+                }
+                if (!urls.length) {
+                    return;
+                }
+                // 标记插件未就绪: init 的建 UI 阶段要等插件(尤其 panel 面板)注册完再执行,
+                // 否则 plugins=panel 时 initPusherWindow 读到的 this.panel 还是 null, 面板不会弹出
+                _this.pluginsLoading++;
+                _this.parallelLoadScripts(urls, function () {
+                    for (var j = 0; j < pending.length; j++) {
+                        var run = _this.pluginsRegistry[pending[j]];
+                        if (typeof run != "function") {
+                            if (typeof console != "undefined" && console.log) {
+                                console.log("插件未注册: " + pending[j]);
+                            }
+                            continue;
+                        }
+                        // 插件异常不影响组件主流程
+                        try {
+                            run(s);
+                        } catch (e) {
+                            if (typeof console != "undefined" && console.log) {
+                                console.log(e);
+                            }
+                        }
+                    }
+                    _this.pluginsLoading--;
+                    _this.flushPluginsCallbacks();
+                });
+            },
+            /**
+             * 等插件脚本全部加载并执行完后再回调; 没有插件或插件已就绪时立即回调
+             * 用于 init 的建 UI 阶段(依赖插件注册结果, 如 panel 插件注册的右上角面板)
+             */
+            afterPluginsLoaded: function (callback) {
+                if (typeof callback != "function") {
+                    return;
+                }
+                if (this.pluginsLoading > 0) {
+                    if (!this.pluginsCallbacks) {
+                        this.pluginsCallbacks = [];
+                    }
+                    this.pluginsCallbacks.push(callback);
+                    return;
+                }
+                callback();
+            },
+            flushPluginsCallbacks: function () {
+                // 还有别的批次在加载: 等最后一批完成时统一回调
+                if (this.pluginsLoading > 0) {
+                    return;
+                }
+                var callbacks = this.pluginsCallbacks;
+                this.pluginsCallbacks = null;
+                if (!callbacks) {
+                    return;
+                }
+                for (var i = 0; i < callbacks.length; i++) {
+                    // 单个回调异常不影响其它回调与主流程
+                    try {
+                        callbacks[i]();
+                    } catch (e) {
+                        if (typeof console != "undefined" && console.log) {
+                            console.log(e);
+                        }
+                    }
                 }
             },
             initPusherKF: function (params) {
@@ -1602,8 +1106,8 @@ try {
                 }
                 var so = io(
                     _this.settings.wsUrl ||
-                    _this.channelWsUrl ||
-                    "https://2120ws.phprm.com",
+                        _this.channelWsUrl ||
+                        "https://2120ws.phprm.com",
                 );
                 _this.danMuSocket = so;
                 _this.danMuSocketToken = params.token;
@@ -1630,6 +1134,24 @@ try {
                     var textLen = cache.textLen;
                     try {
                         var message = JSON.parse(msg);
+                        // 原始消息闸门: 插件/宿主可自行处理某类消息(如 head=广告 走广告位),
+                        // 返回 true 表示已处理, 组件不再把这条消息渲染成弹幕
+                        var msgHook = _this.settings.danMuMessageCallback;
+                        if (typeof msgHook == "function") {
+                            var handled = false;
+                            try {
+                                handled = msgHook.call(_this.settings, message);
+                            } catch (e) {
+                                console && console.log("danMuMessageCallback 执行异常: " + e);
+                            }
+                            if (handled === true) {
+                                return;
+                            }
+                        }
+                        // danMu=0(只收消息, 如广告位): 未处理的普通消息不渲染弹幕
+                        if (_this.settings.danMu != 1) {
+                            return;
+                        }
                         var title = _this.cutText(message.head, Math.ceil(textLen));
                         _this.buildBarragerItem(
                             message.messageId
@@ -1679,49 +1201,6 @@ try {
                 }
                 s.danMuFilter(item);
             },
-            buildTableRow: function (item) {
-                return (
-                    '<div class="table-row"><div class="todo-name" title="' +
-                    item["pushDescribe"] +
-                    '"><a href="' +
-                    item["shareUrl"] +
-                    '" target="_blank">' +
-                    item["pushTitle"] +
-                    '</a></div><div class="todo-button">' +
-                    '<button class="todo-group btn btn-primary" data-code="' +
-                    item["channelCode"] +
-                    '" data-title="' +
-                    item["channelName"] +
-                    '" data-name="' +
-                    item["nickname"] +
-                    '" data-avatar="' +
-                    item["avatar"] +
-                    '"  data-group="' +
-                    item["group"] +
-                    '" data-share="' +
-                    item["shareFlag"] +
-                    '" data-time="' +
-                    item["createTime"] +
-                    '" data-uid="' +
-                    item["channelMemberRelId"] +
-                    '" data-token="' +
-                    item["token"] +
-                    '" width="105" height="35" style="cursor:pointer;">打开推送通道</button>' +
-                    '</div><div class="todo-member">' +
-                    (item["selfStatus"]
-                        ? "我创建的" + item["memberCount"] + "人群组"
-                        : item["nickname"] + "创建的" + item["memberCount"] + "人群组") +
-                    "</div></div>"
-                );
-            },
-            showDanMuMsg: function (doc, text) {
-                $(doc)
-                    .find("#danmuMsg")
-                    .text(text)
-                    .animate({ opacity: 0 }, 4000, function () {
-                        $(this).text("").css("opacity", 1);
-                    });
-            },
             updateCfgCache: function (cfg) {
                 var bottomradio = cfg.bottomradio ? cfg.bottomradio : 0;
                 var textLen = 40;
@@ -1737,16 +1216,6 @@ try {
                     bottomradio: bottomradio,
                     textLen: textLen,
                 };
-            },
-            rangeFail: function (doc, val, min, max, defVal, rangeText, inputName) {
-                if (val < min || val > max) {
-                    this.showDanMuMsg(doc, rangeText);
-                    $(doc)
-                        .find("#danmuConfig form input[name=" + inputName + "]")
-                        .val(defVal);
-                    return true;
-                }
-                return false;
             },
             pad2: function (n) {
                 return n < 10 ? "0" + n : "" + n;
@@ -1860,86 +1329,50 @@ try {
             getPusherPcUrl: function (c) {
                 return WebsitePusher.appendWsUrlParam(
                     c.url +
-                    "?group=" +
-                    c.group +
-                    "&token=" +
-                    c.token +
-                    "&createTime=" +
-                    c.createTime +
-                    "&channelCode=" +
-                    c.channelCode +
-                    "&shareFlag=" +
-                    c.shareFlag +
-                    "&channelName=" +
-                    c.channelName +
-                    "&uid=" +
-                    c.uid +
-                    "&name=" +
-                    c.name +
-                    "&avatar=" +
-                    encodeURIComponent(c.avatar),
+                        "?group=" +
+                        c.group +
+                        "&token=" +
+                        c.token +
+                        "&createTime=" +
+                        c.createTime +
+                        "&channelCode=" +
+                        c.channelCode +
+                        "&shareFlag=" +
+                        c.shareFlag +
+                        "&channelName=" +
+                        c.channelName +
+                        "&uid=" +
+                        c.uid +
+                        "&name=" +
+                        c.name +
+                        "&avatar=" +
+                        encodeURIComponent(c.avatar),
                     c,
                 );
             },
             getPusherMobileUrl: function (c) {
                 return WebsitePusher.appendWsUrlParam(
                     c.url.replace("pc", "mobile") +
-                    "?group=" +
-                    c.group +
-                    "&token=" +
-                    c.token +
-                    "&createTime=" +
-                    c.createTime +
-                    "&channelCode=" +
-                    c.channelCode +
-                    "&shareFlag=" +
-                    c.shareFlag +
-                    "&channelName=" +
-                    c.channelName +
-                    "&uid=" +
-                    c.uid +
-                    "&name=" +
-                    c.name +
-                    "&avatar=" +
-                    encodeURIComponent(c.avatar),
+                        "?group=" +
+                        c.group +
+                        "&token=" +
+                        c.token +
+                        "&createTime=" +
+                        c.createTime +
+                        "&channelCode=" +
+                        c.channelCode +
+                        "&shareFlag=" +
+                        c.shareFlag +
+                        "&channelName=" +
+                        c.channelName +
+                        "&uid=" +
+                        c.uid +
+                        "&name=" +
+                        c.name +
+                        "&avatar=" +
+                        encodeURIComponent(c.avatar),
                     c,
                 );
-            },
-            addChannelInput: function (button, channelCode) {
-                var _this = this;
-                var input = $(button).parents(".channel-input");
-                // 判重: 传入了channelCode且已存在于任一输入框时, 不重复新增(并高亮已有输入框提醒用户)
-                if (channelCode) {
-                    var $exists = input
-                        .find("input[name='channelCode']")
-                        .filter(function () {
-                            return $(this).val() === channelCode;
-                        })
-                        .first();
-                    if ($exists.length) {
-                        return;
-                    }
-                }
-                var html =
-                    '<div class="channel-group">' +
-                    '<span style="clear:both;position:relative;"><input type="text" class="serchpt channelCode" value="' +
-                    (channelCode ? channelCode : "") +
-                    '" name="channelCode" spellcheck="false" placeholder="通道码/口令"/></span>' +
-                    '<span class="pusher-button">' +
-                    '<button class="btn btn-primary" width="105" height="35" style="cursor:pointer;">打开推送通道</button>' +
-                    "</span></div>";
-                var len = input.find(".channel-group").length;
-                if (len > 5) {
-                    input.find(".channel-group").eq(0).remove();
-                }
-                input.parent().find(".footer").hide();
-                $(html).insertBefore($(button).parent());
-                input
-                    .find(".channel-group:last")
-                    .find(".pusher-button")
-                    .click(function () {
-                        _this.openPusherDialog(this);
-                    });
             },
             closePusher: function (skipResetInited) {
                 // 单例标志复位: 用户主动关闭后允许再次 init; 内部清理调用时跳过复位
@@ -2321,181 +1754,11 @@ try {
                 };
                 setTimeout(flashStep, 500);
             },
+            /**
+             * 右下角弹幕图标点击: 面板吸边/恢复或显示/隐藏(具体实现由 panel 插件提供)
+             */
             togglePusherPanel: function () {
-                var $panel = $("#pushWebAnonymous");
-                if ($panel.length === 0) {
-                    return;
-                }
-                var el = $panel[0];
-                var inst = $panel.data("bg_move");
-                var isHidden = el.style.display === "none";
-                if (!isHidden && inst) {
-                    // 可见但可能被吸边（style.left 在屏幕外）
-                    var inlineLeft = el.style.left;
-                    if (inlineLeft) {
-                        var parsed = parseInt(inlineLeft);
-                        if (
-                            parsed < 0 ||
-                            parsed > $(window).width() - $panel.outerWidth()
-                        ) {
-                            isHidden = true;
-                        }
-                    }
-                }
-                if (isHidden) {
-                    $panel.show();
-                    if (inst) {
-                        inst.restore();
-                    }
-                } else {
-                    if (inst) {
-                        inst.right_animate();
-                    } else {
-                        $panel.hide();
-                    }
-                }
-            },
-            closeLogin: function () {
-                $("#pushWeblogin").remove();
-            },
-            startLogin: function (button) {
-                var _this = this;
-                var mainLogin = $(button).parents(".main-login");
-                if (!mainLogin.find("#randomStr").val()) {
-                    // randomStr 由服务端异步签发, 尚未到手时先不提交
-                    mainLogin.find("#verifyCode").focus();
-                    return;
-                }
-                var obj = {
-                    field: {
-                        grant_type: "password",
-                        scope: "server",
-                        type: "username",
-                        mobile: "1",
-                        username: mainLogin.find("#txtEmail").val(),
-                        password: mainLogin.find("#txtPassword").val(),
-                        code: mainLogin.find("#verifyCode").val(),
-                        randomStr: mainLogin.find("#randomStr").val()
-                    },
-                    node: mainLogin,
-                };
-                this.usernameLogin(obj, function (resp) {
-                    if (resp.code != 0) {
-                        if (resp.message) {
-                            console && console.log(resp.message);
-                        }
-                        mainLogin.find("#loginMsg").text(resp.message);
-                        return;
-                    }
-                    var data = resp.data;
-                    if (!data || !data["appKey"]) {
-                        mainLogin
-                            .find("#loginMsg")
-                            .text("登录失败, 请点击下方忘记密码连接登录或者找回密码");
-                        return;
-                    }
-                    var chkRemember = mainLogin.find("#chkRemember").prop("checked");
-                    _this.storeUserInfo("appKey", data["appKey"], chkRemember);
-                    _this.loginSuccess(mainLogin);
-                });
-            },
-            loginSuccess: function (mainLogin) {
-                if (mainLogin.length == 0) {
-                    return;
-                }
-                var _this = this;
-                mainLogin.find("#divLogin").hide();
-                mainLogin.find("#divTodo").show();
-                mainLogin.find("#logoutButton").show();
-                var appKey = this.getUserInfo("appKey");
-                var headers = _this.getSignHeaders();
-                var params = {
-                    type: "getMyWebsitePluginRelByTag",
-                    appKey: appKey,
-                    pid: 0,
-                    _t: headers["apiTimestamp"],
-                    page: 1,
-                    limit: 5
-                };
-                _this.loadPage(params, headers, function (resp) {
-                    if (resp.code != 0) {
-                        mainLogin.find("#todoMsg").text(resp.message);
-                        return;
-                    }
-                    var data = resp["data"];
-                    var r = data["records"];
-                    // 分页区公共前缀: form-button容器 + 加载更多按钮 + noMore开头标签
-                    var pagerHead =
-                        '</div><div class="form-button">\n' +
-                        '<input type="button" id="loadMore" value="加载更多通道" class="load-button btn" />\n' +
-                        '<span id="noMore" class="no-more">';
-                    var html = "";
-                    for (var i = 0; i < r.length; i++) {
-                        html += _this.buildTableRow(r[i]);
-                    }
-                    if (data["totalPage"] > 1) {
-                        html += pagerHead + "没有更多了</span>\n</div>";
-                    } else if (data["totalPage"] == 0) {
-                        html +=
-                            pagerHead +
-                            '还没创建过任何提醒，<a href="' +
-                            _this.settings.apiUrl.replace("/app/api/getDataInfo", "") +
-                            '" class="nav-button" target="_blank">去创建提醒</a></span>\n' +
-                            "</div>";
-                    } else {
-                        html += "</div>";
-                    }
-                    mainLogin.find(".table-todo").html('<div class="table-body">' + html);
-                    if (data["totalPage"] == 0) {
-                        mainLogin.find("#loadMore").hide();
-                        mainLogin.find("#noMore").show();
-                    }
-                    mainLogin.delegate(".todo-group", "click", function () {
-                        var $btn = $(this);
-                        var params = {
-                            url: _this.settings.pcUrl,
-                            channelName: $btn.data("title"),
-                            uid: $btn.data("uid"),
-                            createTime: $btn.data("time"),
-                            name: $btn.data("name"),
-                            avatar: $btn.data("avatar"),
-                            group: $btn.data("group"),
-                            channelCode: $btn.data("code"),
-                            token: $btn.data("token"),
-                            shareFlag: $btn.data("share"),
-                            wsUrl: _this.channelWsUrl || _this.settings.wsUrl
-                        };
-                        _this.initPusherKF(params);
-                    });
-
-                    mainLogin.find("#loadMore").click(function () {
-                        params.page = params.page + 1;
-                        _this.loadPage(params, headers, function (resp) {
-                            if (resp.code != 0) {
-                                mainLogin.find("#todoMsg").text(resp.message);
-                                return;
-                            }
-                            var data = resp["data"];
-                            var r = data["records"];
-                            var html = "";
-                            for (var i = 0; i < r.length; i++) {
-                                html += _this.buildTableRow(r[i]);
-                            }
-                            if (
-                                r.length < params.limit ||
-                                data["current"] == data["totalPage"]
-                            ) {
-                                mainLogin.find("#loadMore").hide();
-                                mainLogin.find("#noMore").show();
-                            }
-                            var $tb = mainLogin.find(".table-body");
-                            $tb.append(html);
-                            try {
-                                $tb.scrollTop($tb.prop("scrollHeight"));
-                            } catch (e) {}
-                        });
-                    });
-                });
+                return this.openPanel("toggle");
             },
             /* GET + JSON + withCredentials 的公共请求 */
             ajaxGet: function (url, data, headers, onSuccess, onError, extra) {
@@ -2515,70 +1778,86 @@ try {
                 }
                 $.ajax(opt);
             },
-            loadPage: function (params, headers, callback) {
+            /**
+             * 触发一条推送（插件/宿主上报共用）：
+             * POST settings.triggerUrl + channelCode，请求体为 JSON：{ head, url: 当前网址, body: 可选内容 }
+             * 用 POST + application/json 而不是 GET 拼查询串：正文可以带到 5 万字符，
+             * 也不受浏览器/网关的 URL 长度限制（服务端已放开这条接口的 CORS 预检）
+             * 通道码未认领时先等它就绪(最多10秒)，等不到则放弃并回调 false
+             * @param {String} head 记录类型，如 "visit" / "click" / "axios" / "vue"
+             * @param {String} [body] 内容，超过 5 万字符会被截断
+             * @param {Function} [callback] 完成回调，入参为是否成功
+             */
+            pushTrigger: function (head, body, callback) {
                 var _this = this;
-                _this.ajaxGet(
-                    _this.settings.apiUrl,
-                    params,
-                    headers,
-                    function (response) {
-                        if (callback) {
-                            callback(response);
-                        }
-                    },
-                    function () {
-                        if (callback) {
-                            callback({
-                                code: -1,
-                                message: "加载提醒列表失败,请前往官网查看",
-                            });
-                        }
+                // 服务端接收 application/json 的正文上限，超出会整条请求被丢弃，这里先截断兜底
+                var MAX_BODY_LENGTH = 50000;
+                if (!head) {
+                    if (callback) callback(false);
+                    return;
+                }
+                var send = function () {
+                    var s = _this.settings;
+                    var base = s.triggerUrl || "";
+                    if (!s.channelCode || !base) {
+                        if (callback) callback(false);
+                        return;
                     }
-                );
-            },
-            usernameLogin: function (obj, callback) {
-                var _this = this;
-                $.ajax({
-                    url: this.settings.authUrl + "/mobile/token/form",
-                    data: obj.field,
-                    type: "POST",
-                    headers: {
-                        Authorization:
-                            "Basic cWM5OGw3dGF3dmZzem9jZjpwbjFrb3drMTBhaml3Mno5dnJkcGh3YXFnNXowdTBuZg==",
-                    },
-                    dataType: "json",
-                    xhrFields: {
-                        withCredentials: true,
-                    },
-                    crossDomain: true,
-                    success: function (resp) {
-                        _this.refreshRandomStr(obj.node);
-                        if (!resp.access_token) {
-                            obj.node.find("#loginMsg").text(resp.message);
-                            return;
-                        }
-                        var headers = _this.getSignHeaders();
-                        _this.ajaxGet(
-                            _this.settings.apiUrl,
-                            {
-                                type: "checkLoginCode",
-                                appKey: "pushBookmark",
-                                code: obj.field.randomStr,
-                                _t: headers["apiTimestamp"],
-                            },
-                            headers,
-                            function (response) {
-                                if (callback) {
-                                    callback(response);
-                                }
-                            },
-                            function () {}
-                        );
-                    },
-                    error: function (resp) {
-                        obj.node.find("#loginMsg").text("登录失败, 请使用匿名推送");
+                    if (base.charAt(base.length - 1) != "/") {
+                        base += "/";
                     }
+                    var payload = {
+                        head: head,
+                        url: window.location.href
+                    };
+                    if (body != null && body !== "") {
+                        var text = String(body);
+                        payload.body = text.length > MAX_BODY_LENGTH
+                            ? text.substring(0, MAX_BODY_LENGTH)
+                            : text;
+                    }
+                    // 触发接口不鉴权: 普通跨域 POST(不携带凭据), 不带 withCredentials,
+                    // 避免要求服务端额外放开凭据跨域(与旧的 GET 行为保持一致)
+                    $.ajax({
+                        url: base + encodeURIComponent(s.channelCode),
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        crossDomain: true,
+                        processData: false,
+                        data: JSON.stringify(payload),
+                        success: function () {
+                            if (callback) callback(true);
+                        },
+                        error: function () {
+                            if (callback) callback(false);
+                        }
+                    });
+                };
+                _this.waitChannelCode(send, function () {
+                    if (callback) callback(false);
                 });
+            },
+            /**
+             * 等通道码就绪：已被认领则立即回调，超时(默认10秒)则走 onTimeout
+             * 通道码可能由组件按当前网址异步认领，插件在 init 阶段读到的通常是空值
+             */
+            waitChannelCode: function (onReady, onTimeout) {
+                var _this = this;
+                var waited = 0;
+                var tick = function () {
+                    if (_this.settings.channelCode) {
+                        onReady();
+                        return;
+                    }
+                    waited += 200;
+                    if (waited >= 10000) {
+                        if (onTimeout) onTimeout();
+                        return;
+                    }
+                    window.setTimeout(tick, 200);
+                };
+                tick();
             },
             /* ===== 工具方法：签名 / Cookie / URL / 文本 / 脚本加载 ===== */
             getSignHeaders: function () {
@@ -2593,198 +1872,6 @@ try {
                     apiSign: apiSign
                 };
             },
-            buildLoginWindowHtml: function () {
-                var s = this.settings;
-                return (
-                    "<!DOCTYPE html><html>" +
-                    "<head>" +
-                    '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />' +
-                    "<title></title>" +
-                    '<link href="' +
-                    s.cssSite +
-                    'pusher.css" rel="stylesheet" type="text/css" />' +
-                    "</head>" +
-                    '<body style="margin:0px;padding:0px">' +
-                    '<div class="main">' +
-                    '<div class="main-login" style="display: none">' +
-                    '<div id="divLogin" class="login">' +
-                    '<div style="height:33px">' +
-                    '<div class="lf" style="padding-top:8px"><img src="' +
-                    s.cssSite +
-                    'images/7.gif"></div>' +
-                    '<div class="rt lan360" style="padding-top:8px"></div>' +
-                    "</div>" +
-                    '<div id="loginMsg" class="msg"></div>' +
-                    '<div class="login-group">' +
-                    '<div class="form-group">' +
-                    '<input id="txtEmail" type="text" class="username" placeholder="注册邮箱"/>' +
-                    "</div>" +
-                    '<div style="clear:both;height:54px;position:relative">' +
-                    '<input type="password" style="color:#272727;" class="login-pwd" id="txtPassword" placeholder="密码"/>' +
-                    "</div>" +
-                    '<div style="clear:both;height:54px;position:relative">' +
-                    '				<input type="code" placeholder="验证码" class="login-verify" id="verifyCode"/>' +
-                    '<div class="login-captcha"><input id="randomStr" type="hidden" value=""/>' +
-                    '<span><img class="random-code" alt="验证码"/></span></div>' +
-                    "</div>" +
-                    '<div class="login-button"><table border="0" cellpadding="0" cellspacing="0">' +
-                    "<tbody><tr>" +
-                    '					<td width="28"><input id="chkRemember" value="" type="checkbox" checked/></td>' +
-                    '					<td width="117"><label for="chkRemember" title="此次登录后，只要您不点击“退出”，一周内再访问本网站时，系统将自动为您保持登录状态。">下次自动登录</label></td>' +
-                    '					<td class="lan360" width="118" style=" text-align:right;">' +
-                    '						<a href="' +
-                    s.pushUrl +
-                    "/api_user_user_forget.html?callback=" +
-                    encodeURIComponent(window.location.href) +
-                    '" target="_blank">忘记密码?</a>' +
-                    "					</td>" +
-                    "						</tr>" +
-                    "				</tbody></table>" +
-                    "			</div>" +
-                    "			<div>" +
-                    '				<img src="' +
-                    s.cssSite +
-                    'images/8.gif" width="259" height="36" style="cursor:pointer;" id="btnLogin"/>' +
-                    "			</div>" +
-                    '<div style=" text-align:center; padding-top:25px; height:38px;"><img src="' +
-                    s.cssSite +
-                    'images/26.gif" width="434" height="7" /></div>' +
-                    "</div>" +
-                    "</div>" +
-                    '<div id="divTodo" class="todo-container" style="display:none">' +
-                    '<div style="height:33px">' +
-                    '<div class="lf" style="padding-top:8px">我的消息提醒列表</div>' +
-                    '<div class="rt lan360" style="padding-top:8px"></div>' +
-                    "</div>" +
-                    '<div id="todoMsg" class="msg"></div>' +
-                    '<div class="table-todo"></div>' +
-                    '<div id="channelMore">' +
-                    '<div style="text-align:center; padding-top:25px; height:38px;"><img src="' +
-                    s.cssSite +
-                    'images/26.gif" width="434" height="7" /></div>' +
-                    "</div>" +
-                    "</div>" +
-                    '<div style=" text-align:center; height:38px;">' +
-                    '<div class="footer">' +
-                    '<a href="javascript:void(0)" class="nav-button" id="anonymousButton" target="_self">匿名推送</a>' +
-                    '<a href="javascript:void(0)" class="nav-button" id="logoutButton" style="display:none" target="_self">退出登录</a>' +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    "</div></body></html>"
-                );
-            },
-            unlogin: function (button) {
-                var _this = this;
-                _this.closePusher();
-                _this.closeLogin();
-                this.buildPanel(
-                    "pushWeblogin",
-                    '<div style="width:470px;padding:0px;" id="pushWebloginContent" class="ydnwc-dialog"><div id="viewLogin" style="width:470px;height:490px;"></div></div>',
-                    function () {
-                        _this.closeLogin();
-                    },
-                );
-                var loginHtml =
-                    "<iframe frameborder='0' src=\"javascript:void((function(){var d=document;d.open();document.domain='" +
-                    document.domain +
-                    "';d.write('');d.close()})())\" scrolling='no' width='470' height='490' id='loginIframe' allowtransparency></iframe>";
-                $("#viewLogin").html(loginHtml);
-                var loginFrame = $("#loginIframe")[0];
-                try {
-                    var doc = loginFrame.contentWindow.document;
-                    var $doc = $(doc);
-                    doc.open();
-                    var html = _this.buildLoginWindowHtml();
-                    doc.write(html);
-                    doc.close();
-                    // 登录框先渲染, 验证码标识异步向服务端申请后再挂图片 src (buildLoginWindowHtml 已不再写 src)
-                    _this.refreshRandomStr($doc.find(".login-captcha"));
-
-                    $doc.find("#loading").text("正在加载中...");
-                    $doc.find(".main").fadeIn(100, function () {
-                        $doc.find("#loading").hide();
-                        $(loginFrame.contentWindow).load(function () {
-                            $doc.find(".main-login").fadeIn(100);
-                        });
-                    });
-
-                    $doc.find("#logoutButton").click(function () {
-                        _this.logout(this);
-                    });
-                    $doc.find("#anonymousButton").click(function () {
-                        _this.initPusherWindow(false);
-                    });
-                    $doc.find(".pusher-close-btn").click(function () {
-                        _this.closeLogin(this);
-                    });
-                    $doc.find("#btnLogin").click(function () {
-                        _this.startLogin(this);
-                    });
-                    $doc.find(".login-captcha").click(function () {
-                        _this.refreshRandomStr(this);
-                    });
-                    _this.checkLoginStatus(doc, function (resp) {
-                        var data = resp.data;
-                        if (data && data["userInfo"]) {
-                            $doc
-                                .find(".loginButton")
-                                .text("用户" + data["nickname"] + "已登录");
-                            _this.loginSuccess($doc.find(".main-login"));
-                        } else {
-                            _this.logout($doc.find("#logoutButton").get(0));
-                        }
-                    });
-                } catch (err) {
-                    console && console.log(err);
-                }
-            },
-            /**
-             * 验证码标识 randomStr 由服务端签发 (GET /draw/captcha/key),
-             * 前端不再生成 randomStr, 否则 /draw/captcha/image 会因未签发而拒出图
-             * @param {function(string)} callback 回调, 参数为签发值, 失败时为空字符串
-             */
-            fetchCaptchaKey: function (callback) {
-                $.ajax({
-                    url: this.settings.authUrl + "/draw/captcha/key",
-                    type: "GET",
-                    dataType: "json",
-                    crossDomain: true,
-                    success: function (res) {
-                        callback(res && res.code == 0 && res.data ? res.data : "");
-                    },
-                    error: function () {
-                        callback("");
-                    },
-                });
-            },
-            refreshRandomStr: function (button) {
-                var _this = this;
-                var captchaBox = $(button);
-                _this.fetchCaptchaKey(function (randomStr) {
-                    if (!randomStr) {
-                        // 签发失败保持原状, 用户可再次点击重试
-                        return;
-                    }
-                    captchaBox.find("#randomStr").val(randomStr);
-                    captchaBox
-                        .find(".random-code")
-                        .attr(
-                            "src",
-                            _this.settings.authUrl +
-                            "/draw/captcha/image?randomStr=" +
-                            randomStr,
-                        );
-                });
-            },
-            logout: function (button) {
-                var mainLogin = $(button).parents(".main-login");
-                this.storeUserInfo("appKey", "", -1);
-                mainLogin.find("#logoutButton").hide();
-                mainLogin.find("#divTodo").hide();
-                mainLogin.find("#divLogin").show();
-                mainLogin.find("#anonymousButton").show();
-            },
             getUserInfo: function (name) {
                 return this.cookieGet(name);
             },
@@ -2798,7 +1885,6 @@ try {
                     this.cookieSet(name, value, 2 / 24);
                 }
             },
-            DK: "pusher_danmu_config",
             /* 弹幕配置持久化: 优先 localStorage; 不可用时回退 cookie */
             getDanMuStorage: function () {
                 try {
@@ -2828,7 +1914,6 @@ try {
                 } catch (e) {}
                 this.cookieSet(this.DK, "", -1);
             },
-            DEK: "pusher_device_id",
             /* 设备ID持久化: localStorage 优先 + 长期cookie(约10年)兜底,
                浏览器升级改变UA/插件等指纹组件时仍复用首次固化的ID, 不会被服务端识别为新设备 */
             getStoredDeviceId: function () {
@@ -2920,8 +2005,15 @@ try {
                 var _this = this;
                 var options = arguments[0] || {};
                 var appName = options.appName || "";
-                // 单例保护; 不同appName允许重新初始化(仅允许hidePanel==1重新初始化)
-                if (appName && _this._initedAppName === appName && options.hidePanel != 1) {
+                // 单例保护: 同一 appName 且面板窗口仍然存在时视为重复调用, 直接忽略;
+                // 面板已关闭(面板插件的关闭回调会调 closePusher 复位 _initedAppName)、
+                // 或本次初始化本来就不建面板(没配 plugins:"panel", 如首页的"打开体验窗口")时放行,
+                // 否则关掉窗口后再点按钮会被单例挡死, 窗口打不开
+                if (
+                    appName &&
+                    _this._initedAppName === appName &&
+                    $("#pushWebAnonymous").length > 0
+                ) {
                     return;
                 }
                 // 递增初始化版本号: 让异步回调(Fingerprint2等)检测是否已被更新的 init 取代,
@@ -2936,9 +2028,16 @@ try {
                     if (_this._initGen !== myGen) {
                         return;
                     }
-                    _this.styleIframe();
-                    // 传入本次 init 的 channelCode, 避免并发 init 覆盖共享 s.channelCode 导致重复请求
-                    _this.initPusherWindow(true, options.channelCode);
+                    // 等插件就绪再建 UI: 插件脚本是异步注入的, 早于注册就跑 initPusherWindow 的话
+                    // this.panel 还是 null, plugins=panel 时右上角面板不会自动弹出
+                    _this.afterPluginsLoaded(function () {
+                        // 插件加载期间可能又有新的 init 执行过, 再校验一次代次
+                        if (_this._initGen !== myGen) {
+                            return;
+                        }
+                        // 传入本次 init 的 channelCode, 避免并发 init 覆盖共享 s.channelCode 导致重复请求
+                        _this.initPusherWindow(true, options.channelCode);
+                    });
                 });
             },
             /**

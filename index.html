@@ -257,7 +257,7 @@
                 -webkit-overflow-scrolling: touch;
             }
         }
-        /* ===== 业务 Demo 展示卡片 ===== */
+        /* ===== 业务示例 展示卡片 ===== */
         .demo-card {
             background: linear-gradient(135deg, #54949B 0%, #3a6b72 100%);
             color: #fff;
@@ -291,6 +291,12 @@
             opacity: .92;
             line-height: 1.7;
             margin: 0 0 6px;
+        }
+        .demo-card code {
+            background: rgba(255, 255, 255, .18);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 13px;
         }
         .demo-card .demo-features {
             margin-top: 10px;
@@ -345,21 +351,22 @@
     </div>
 
     <div class="container">
-        <!-- 业务 Demo 展示 -->
-        <a class="demo-card" href="https://head.phprm.com/api/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:flex;">
+        <!-- 业务示例 展示 -->
+        <a class="demo-card" href="examples/index.html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:flex;">
             <div class="demo-info">
-                <span class="demo-tag">业务 Demo</span>
-                <h2>小纸条信箱 · 匿名弹幕留言</h2>
-                <p>一个匿名留言信箱应用，使用 AI 弹幕组件读取 DOM 节点上的留言数据，发送给 AI 大模型自动生成弹幕，实现弹幕与留言系统相互打通。</p>
+                <span class="demo-tag">业务示例</span>
+                <h2>插件示例总览 · 9 个可直接打开的页面</h2>
+                <p><code>examples/</code> 下是一组开箱即用的示例页，每页对应一种真实用法：访问统计、接口异常上报、右下角广告位、右上角推送面板，以及单个 html 双击即可离线可用。每页都附了可直接抄走的加载地址与 GET 请求，把通道码换成自己的就能用。</p>
                 <div class="demo-features">
-                    <span>📨 匿名留言</span>
-                    <span>🤖 AI 自动弹幕</span>
-                    <span>💬 弹幕 ↔ 留言打通</span>
-                    <span>📱 移动端适配</span>
+                    <span>📊 访问统计</span>
+                    <span>⚠️ 异常上报</span>
+                    <span>🖼 右下角广告位</span>
+                    <span>📄 离线单文件</span>
+                    <span>🔗 GET 请求触发</span>
                 </div>
             </div>
             <div class="demo-action">
-                <span class="btn-demo">访问 Demo →</span>
+                <span class="btn-demo">查看示例 →</span>
             </div>
         </a>
 
@@ -495,7 +502,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
                 <div class="code-block-body"><span class="c">&lt;!-- 一行 JS 集成 AI 弹幕 --&gt;</span>
 (<span class="k">function</span>() {
     <span class="k">var</span> dm = document.createElement(<span class="s">"script"</span>);
-    dm.src = <span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=你的应用名用于数据统计&amp;channelCode=你的通道码&amp;hidePanel=1&amp;hideDialog=1&amp;danMu=1"</span>;
+    dm.src = <span class="s">"https://ws.phprm.com/static/customer/js/danmu.js?appName=你的应用名用于数据统计&amp;channelCode=你的通道码&amp;hideDialog=1&amp;danMu=1"</span>;
     <span class="k">var</span> s = document.getElementsByTagName(<span class="s">"script"</span>)[<span class="n">0</span>];
     s.parentNode.insertBefore(dm, s);
 })();</div>
@@ -572,13 +579,13 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
                 <tr><td><code>cssSite</code></td><td>CSS 资源根路径, 可定制为业务方cdn地址</td></tr>
                 <tr><td><code>jsSite</code></td><td>JS 资源根路径, 可定制为业务方cdn地址</td></tr>
                 <tr><td><code>pcUrl</code></td><td>PC 端页面地址, 可定制为业务方cdn地址和样式</td></tr>
-                <tr><td><code>pushUrl</code></td><td>弹幕云服务官网, 固定值, 不可修改</td></tr>
+                <tr><td><code>pushUrl</code></td><td><a href="https://push.phprm.com/" target="_blank" rel="noopener">弹幕云服务官网</a>, 固定值, 不可修改</td></tr>
                 <tr><td><code>apiUrl</code></td><td>弹幕云服务API接口, 固定值, 不可修改</td></tr>
                 <tr><td><code>authUrl</code></td><td>弹幕云服务Oauth接口, 固定值, 不可修改</td></tr>
                 <tr><td><code>wsUrl</code></td><td>弹幕云服务Socket接口, 固定值, 不可修改</td></tr>
                 <tr><td><code>channelMemberUrl</code></td><td>弹幕云服务API接口, 固定值, 不可修改</td></tr>
                 <tr><td><code>appName</code></td><td>自定义应用名称(用于数据统计)</td></tr>
-                <tr><td><code>channelCode</code></td><td>指定通道码, 可到弹幕云服务官网注册后获取后传参, 认证域名后自动创建弹幕通道码可不传</td></tr>
+                <tr><td><code>channelCode</code></td><td>指定通道码, 可到<a href="https://push.phprm.com/" target="_blank" rel="noopener">弹幕云服务官网</a>注册后获取后传参, 认证域名后自动创建弹幕通道码可不传</td></tr>
                 <tr><td><code>uid</code></td><td>弹幕云成员ID, 长整形数字, 仅用于标识</td></tr>
                 <tr><td><code>name</code></td><td>弹幕云成员昵称</td></tr>
                 <tr><td><code>createTime</code></td><td>弹幕云成员加入时间</td></tr>
@@ -590,7 +597,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
                 <tr><td><code>userPlatformType</code></td><td>访问成员用户平台类型</td></tr>
                 <tr><td><code>userPlatformVersion</code></td><td>访问成员用户平台版本</td></tr>
                 <tr><td><code>hideDialog</code></td><td>是否隐藏对话框(0=显示, 1=隐藏), <font>支持danmu.js?hideDialog=1关闭对话框模式</font></td></tr>
-                <tr><td><code>hidePanel</code></td><td>是否隐藏推送面板(0=显示, 1=隐藏), <font>支持danmu.js?hidePanel=1关闭弹幕配置面板</font></td></tr>
+                <tr><td><code>plugins</code></td><td>要加载的插件(英文逗号分隔, 如 stat / panel / stat,ad), <font>支持danmu.js?plugins=stat,panel加载多个插件</font>; 右上角面板由这里的 <code>panel</code> 决定, 旧参数 <code>hidePanel</code> 已废弃</td></tr>
                 <tr><td><code>danMu</code></td><td>是否开启弹幕(0=关闭, 1=开启), <font>支持danmu.js?danMu=1开启弹幕</font></td></tr>
                 <tr><td><code>closeText</code></td><td>自定义关闭/举报按钮文字, 仅当danMuSetting.close=1时生效</td></tr>
                 <tr><td><code>danMuSetting</code></td><td>弹幕外观配置(嵌套对象, 子属性见下方)</td></tr>
@@ -653,7 +660,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
     <script type="text/javascript">
         (function () {
             var dm = document.createElement("script");
-            dm.src = "static/js/danmu.js?appName=AI弹幕&danMu=1&hidePanel=1&hideDialog=1&autoInit=0";
+            dm.src = "static/js/danmu.js?appName=AI弹幕&danMu=1&hideDialog=1&autoInit=0";
             var s = document.getElementsByTagName("script")[0];
             s.parentNode.insertBefore(dm, s);
         })();
@@ -663,7 +670,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
         appName: "AI弹幕",	 	// 必填
         danMu: 1,				// 弹幕传1
         channelCode: "3db15cb9ff360873027019296797c796",
-        hidePanel: 1,			// 是否隐藏默认面板
+        plugins: "",            // 要加载的插件, 英文逗号分隔(如 "stat,ad"); 需要右上角面板写 "panel"
         hideDialog: 1,			// 是否隐藏默认对话窗口
         danMuSetting: {
             hideIcon: 0,        // 0=显示右下角浮窗图标

@@ -101,11 +101,11 @@ danmu.js 会按序自动加载 md5.js / socket.io.min.js / jquery.barrager.js / 
 | 参数 | 说明 |
 | ---- | ---- |
 | appName | 应用名称（必填，用于数据统计） |
-| channelCode | 推送通道码，到弹幕云服务官网注册后获取 |
+| channelCode | 推送通道码，到<a href="https://push.phprm.com/" target="_blank" rel="noopener">弹幕云服务官网</a>注册后获取 |
 | danMu | 1=开启弹幕，0=关闭 |
-| danmu | AI 弹幕轮询间隔（秒），0=关闭 |
+| aiDanMu | AI 弹幕轮询间隔（秒），0=关闭 |
 | hideDialog | 1=隐藏推送对话框 |
-| hidePanel | 1=隐藏推送面板 |
+| plugins | 要加载的插件，英文逗号分隔（如 stat / panel / stat,ad）；不传=不加载插件，也不会出现右上角面板（旧参数 hidePanel 已废弃） |
 | hideIcon | 1=隐藏右下角浮窗图标 |
 
 ### 高级集成（自定义配置）
@@ -115,7 +115,7 @@ WebsitePusher.init({
     appName: "我的弹幕",
     channelCode: "你的通道码",
     danMu: 1,
-    hidePanel: 1,
+    plugins: "",      // 要加载的插件，英文逗号分隔，如 "stat,ad"；需要右上角面板写 "panel"
     hideDialog: 1,
     danMuSetting: {
         opacity: 50,       // 背景不透明度 0~100
@@ -198,7 +198,7 @@ http://localhost/danmu/server.html      # 后端过滤演示
 | 基础 | siteName / apiKey / cssSite / jsSite | apiKey 为服务端鉴权契约，勿改名 |
 | 地址 | pcUrl / pushUrl / apiUrl / authUrl / wsUrl / channelMemberUrl | 弹幕云服务固定地址 |
 | 用户态 | channelCode / uid / name / createTime / token / avatar / device / clientVersion / screenResolution / userPlatformType / userPlatformVersion | — |
-| 行为开关 | hideDialog(0/1) / hidePanel(0/1) / danMu(0/1) | hideIcon(0/1) 控制右下角浮窗 |
+| 行为开关 | hideDialog(0/1) / danMu(0/1) / plugins(插件名, 英文逗号分隔) | hideIcon(0/1) 控制右下角浮窗；右上角面板由 plugins 里的 panel 决定，hidePanel 已废弃 |
 | 文案 | closeText | 弹幕关闭按钮自定义文案 |
 | 消息 | messageLength | messageIdList 容量上限，默认 20000 |
 

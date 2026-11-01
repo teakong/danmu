@@ -1,9 +1,13 @@
 // danmu.js —— 一行代码集成推送 + 弹幕的加载入口
 // 作用: 自动按序加载依赖(md5.js / socket.io.min.js / jquery.barrager.js / pusher.js)与 barrager.css,
-//       读取 <script src="danmu.js?..."> 上携带的参数(appName/channelCode/danMu/aiDanMu/hideDialog/hidePanel),
-//       就绪后调用 WebsitePusher.init(options) 完成弹幕/推送初始化。
+//       读取 <script src="danmu.js?..."> 上携带的参数(appName/channelCode/danMu/aiDanMu/hideDialog/hideIcon/plugins),
+//       就绪后调用 WebsitePusher.init(options) 完成弹幕/推送/插件初始化。
 // 用法:  <script src="static/js/danmu.js?appName=弹幕&channelCode=xxx&danMu=1"></script>
+//        访问统计: <script src="static/js/danmu.js?appName=xxx&channelCode=xxx&plugins=stat"></script>
+//        右上角面板: <script src="static/js/danmu.js?appName=xxx&channelCode=xxx&danMu=1&plugins=panel"></script>
 // 路径:  所有依赖均按 danmu.js 自身所在目录解析, 因此无论宿主页面放在哪都能正确加载。
+// 安全:  不使用 URL 参数改变插件目录(pluginsSite), 插件目录始终是 danmu.js 同目录的 plugins/;
+//        业务方确需自定义时, 请在代码里 WebsitePusher.init({ pluginsSite: "..." }) 显式指定。
 
 // 单例保护: 防止重复引入脚本导致 WebsitePusher.init 被多次调用
 // 用当前 script 标签的 data 属性做标记, 不污染 window
@@ -65,6 +69,7 @@
     var pusherParams = getPusherQueryParams(danmuScriptUrl);
 
     // 依赖 JS 列表(按序加载), 全部相对 danmu.js 目录解析
+    // 本仓库只发布可读源码(带注释), 不提供 pusher.min.js / jquery.barrager.min.js 压缩版
     var pusherScripts = [];
     if (typeof $ === "undefined" || typeof $.fn.jquery === "undefined") {
         pusherScripts.push(scriptDir + "jquery.min.js");
@@ -179,18 +184,34 @@
             : getUrlParam("channelCode");
         var hideDialog =
             pusherParams["hideDialog"] == 1 ? 1 : getUrlParam("hideDialog");
-        var hidePanel = pusherParams["hidePanel"] == 1 ? 1 : getUrlParam("hidePanel");
         var danMu = pusherParams["danMu"] == 1 ? 1 : getUrlParam("danMu");
         var aiDanMu =
             pusherParams["aiDanMu"] > 0
                 ? pusherParams["aiDanMu"]
                 : getUrlParam("aiDanMu");
+        // hideIcon: 1=不创建右下角浮窗图标(只出广告位/面板等, 页面更干净)
+        var hideIcon =
+            pusherParams["hideIcon"] == 1 || getUrlParam("hideIcon") == 1 ? 1 : 0;
         // appName 优先取 danmu.js src 参数, 其次取页面 URL 参数(兼容本地直接打开页面的场景)
         var appName = pusherParams["appName"]
             ? pusherParams["appName"]
             : getUrlParam("appName");
         // autoInit: 默认 1=自动初始化, 0=仅加载依赖不初始化, 由业务方自行调用 WebsitePusher.init()
         var autoInit = pusherParams["autoInit"] == 0 ? 0 : 1;
+        // plugins: 插件名(英文逗号分隔, 可一次加载多个, 如 plugins=stat,foo)
+        // 不传=不加载插件(也没有右上角面板); 需要面板时写 plugins=panel 或 plugins=stat,panel
+        var plugins =
+            pusherParams["plugins"] != null
+                ? pusherParams["plugins"]
+                : getUrlParam("plugins");
+        // pluginsSite: 插件目录固定为 danmu.js 同目录下的 plugins/, 本地与线上均按 danmu.js 自身位置解析
+        // 安全: 不再允许通过 URL 传 pluginsSite, 避免被拼出任意站点的 js 当插件加载
+        //       业务方确需自定义时, 只能在代码里 WebsitePusher.init({ pluginsSite: "..." }) 显式指定
+        var pluginsSite = scriptDir + "plugins/";
+        // 让业务方手动 init() 时也默认用 danmu.js 同目录的 plugins/(仅改默认值, 仍不接受 URL 覆盖)
+        if (typeof WebsitePusher !== "undefined" && WebsitePusher.settings) {
+            WebsitePusher.settings.pluginsSite = pluginsSite;
+        }
 
         // 触发 websitePusherReady 自定义事件, 通知业务方依赖已加载完成
         // 业务方可以监听此事件后再调用 WebsitePusher.init() 传入自定义参数
@@ -228,9 +249,10 @@
                     appName: appName,
                     channelCode: channelCode,
                     hideDialog: hideDialog,
-                    hidePanel: hidePanel,
                     danMu: danMu,
-                    danMuSetting: { aiDanMu: aiDanMu },
+                    danMuSetting: { aiDanMu: aiDanMu, hideIcon: hideIcon },
+                    plugins: plugins,
+                    pluginsSite: pluginsSite,
                 });
             }
             triggerReady();

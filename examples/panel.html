@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+<meta charset="utf-8">
+<title>panel 插件示例 · 右上角推送面板</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{margin:0;background:#f5f6f8;color:#222;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;}
+.wrap{max-width:1176px;margin:0 auto;padding:24px 16px 72px;}
+h1{font-size:22px;margin:0 0 6px;}
+.sub{color:#8a8f96;font-size:14px;margin:0 0 18px;}
+.card{background:#fff;border:1px solid #e5e8eb;border-radius:8px;padding:16px;margin-bottom:16px;}
+.card h2{font-size:16px;margin:0 0 10px;}
+code{background:#f1f3f5;padding:1px 5px;border-radius:3px;font-family:Consolas,Menlo,monospace;font-size:13px;}
+code.block{display:block;padding:10px 12px;margin:8px 0;overflow:auto;white-space:pre;}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+input[type=text]{flex:1;min-width:240px;padding:7px 9px;border:1px solid #d5d8dc;border-radius:4px;font-size:14px;}
+button{padding:7px 14px;border:1px solid #3a7afe;background:#3a7afe;color:#fff;border-radius:4px;font-size:14px;cursor:pointer;}
+button.ghost{background:#fff;color:#3a7afe;}
+button[disabled]{opacity:.55;cursor:default;}
+.log{background:#0f1317;color:#b9e6c9;border-radius:6px;padding:10px 12px;height:200px;overflow:auto;font-family:Consolas,Menlo,monospace;font-size:13px;line-height:1.6;}
+.log .warn{color:#ffcc66;}
+.log .err{color:#ff8a8a;}
+.log .ok{color:#7fd8ff;}
+.hint{font-size:13px;color:#8a8f96;}
+.status{font-family:Consolas,Menlo,monospace;font-size:13px;background:#f7f9fb;border:1px solid #e5e8eb;border-radius:6px;padding:10px 12px;word-break:break-all;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th,td{border-bottom:1px solid #eef0f2;padding:6px 8px;text-align:left;vertical-align:top;}
+th{color:#666;font-weight:600;white-space:nowrap;}
+/* >>cb-theme */
+/* code block: terminal style with copy button */
+.cb{position:relative;margin:12px 0;background:#1e293b;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.15);}
+.cb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #334155;}
+.cb-dots{display:flex;gap:8px;}
+.cb-dots i{width:12px;height:12px;border-radius:50%;display:inline-block;}
+.cb-dots .r{background:#ff5f56;}
+.cb-dots .y{background:#ffbd2e;}
+.cb-dots .g{background:#27c93f;}
+.cb-btn{display:flex;align-items:center;gap:4px;background:none;border:none;color:#94a3b8;font-size:12px;padding:4px 8px;border-radius:4px;cursor:pointer;transition:all .15s;font-family:inherit;}
+.cb-btn:hover{background:#334155;color:#e2e8f0;}
+.cb-btn svg{width:14px;height:14px;fill:currentColor;}
+.cb-body{display:block;margin:0;padding:16px;background:#1e293b;border-radius:0;color:#a5f3a5;font:14px/1.8 Consolas,Monaco,"Courier New",monospace;white-space:pre;overflow-x:auto;}
+.cb-body .k{color:#c084fc;}
+.cb-body .s{color:#86efac;}
+.cb-body .c{color:#64748b;font-style:italic;}
+.cb-body .fn{color:#60a5fa;}
+/* <<cb-theme */
+/* GitHub 角标 */
+.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out;}
+@keyframes octocat-wave{0%,100%{transform:rotate(0);}20%,60%{transform:rotate(-25deg);}40%,80%{transform:rotate(10deg);}}
+@media (max-width:500px){.github-corner:hover .octo-arm{animation:none;}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out;}}
+</style>
+</head>
+<body>
+    <!-- GitHub 角标（与首页一致） -->
+    <a href="https://github.com/teakong/danmu" class="github-corner" target="_blank" rel="noopener" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; left: 0; z-index: 9999; transform: scaleX(-1);" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a>
+
+<div class="wrap">
+    <h1>panel 插件示例</h1>
+    <p class="sub">加载 <code>plugins=panel</code> 后，页面右上角出现推送面板：通道码、登录账户、增加更多通道、弹幕设置，以及打开/关闭面板的 API。</p>
+
+    <div class="card">
+        <h2>本页加载的地址（可直接抄走）</h2>
+        <code class="block" id="srcPreview">加载中…</code>
+        <p class="hint">要点：面板不是默认出现的，必须在 <code>plugins</code> 里写 <code>panel</code>；旧参数 <code>hidePanel</code> 已废弃。</p>
+    </div>
+
+    <div class="card">
+        <h2>操作</h2>
+        <div class="row">
+            <label style="width:auto;">通道码</label>
+            <input type="text" id="channelCode" placeholder="留空=按当前网址自动认领">
+            <button id="btnReload">用这个通道码重新加载</button>
+        </div>
+        <div class="row">
+            <button id="btnReopen">重新打开面板 initPusherWindow(true, "")</button>
+            <button id="btnToggle" class="ghost">切换面板 togglePusherPanel()</button>
+            <button id="btnClose" class="ghost">关闭面板 closePusher()</button>
+            <button id="btnRefresh" class="ghost">刷新状态</button>
+        </div>
+        <p class="hint"><code>closePusher()</code> 会移除面板 DOM，需要点「重新打开面板」才会回来；<code>togglePusherPanel()</code> 是「吸边 / 恢复」切换，DOM 保留。</p>
+    </div>
+
+    <div class="card">
+        <h2>面板实时状态</h2>
+        <div class="status" id="status">等待组件加载…</div>
+        <p class="hint">「登录入口」取面板底部 <code>.loginButton</code> 的文案：未登录是「登录账户」，登录后是「用户xxx已登录」。</p>
+    </div>
+
+    <div class="card">
+        <h2>现场日志</h2>
+        <div class="log" id="log"></div>
+        <p class="hint">面板本身不上报 pushTrigger，这里记录面板 API 调用结果与组件事件。</p>
+    </div>
+
+    <div class="card">
+        <h2>插件对外 API（WebsitePusher.panel）</h2>
+        <table>
+            <tr><th>方法</th><th>说明</th></tr>
+            <tr><td><code>openPusherWindow(checkLoginStatus, channelCode)</code></td><td>打开推送面板；第一个参数为 false 时不自动查询登录态（匿名推送用）。</td></tr>
+            <tr><td><code>openLoginWindow(button)</code></td><td>打开登录窗口（宿主也可在自己的按钮上调用，button 用于回到登录前的位置）。</td></tr>
+            <tr><td><code>toggle()</code></td><td>面板开关切换（组件右下角弹幕图标的点击也是走它）。</td></tr>
+            <tr><td><code>addChannelInput(button, channelCode)</code></td><td>面板上加一行通道码输入（最多 6 行，超过会移除最早一行）。</td></tr>
+            <tr><td><code>initDanMuConfigForm(doc, cfg, aiOn)</code></td><td>打开弹幕设置页（透明度/大小/速度/高度/AI 弹幕）。</td></tr>
+            <tr><td><code>setAiDanMuGroup(doc, on)</code></td><td>弹幕设置页里 AI 弹幕分组的展开/收起。</td></tr>
+        </table>
+        <p class="hint">通用开关：<code>WebsitePusher.initPusherWindow(true, "")</code>（重新打开）、<code>WebsitePusher.togglePusherPanel()</code>（切换）、<code>WebsitePusher.closePusher()</code>（关闭）。</p>
+    </div>
+</div>
+
+<script>
+(function () {
+    // ================= 演示页公共工具（各示例页通用，可整段抄走） =================
+    // 仓库演示通道(与根目录 index.html 一致)；自己的项目请换成自己的通道码
+    var DEMO_CHANNEL = "3db15cb9ff360873027019296797c796";
+
+    function qs(name) {
+        var m = window.location.search.match(new RegExp("[?&]" + name + "=([^&#]*)"));
+        return m ? decodeURIComponent(m[1]) : "";
+    }
+
+    var channelCode = qs("channelCode") || DEMO_CHANNEL;
+    var logEl = document.getElementById("log");
+
+    function logLine(text, kind) {
+        if (!logEl) return;
+        var time = new Date().toTimeString().substring(0, 8);
+        var row = document.createElement("div");
+        if (kind) row.className = kind;
+        row.appendChild(document.createTextNode("[" + time + "] " + text));
+        logEl.appendChild(row);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // 组件就绪(websitePusherReady)队列：danmu.js 加载完依赖并 init 后触发
+    var readyHandlers = [];
+    var readyFired = false;
+
+    function runHandler(fn) {
+        try {
+            fn();
+        } catch (e) {
+            logLine("示例代码执行异常: " + (e && e.message ? e.message : e), "err");
+        }
+    }
+
+    function fireReady() {
+        if (readyFired) return;
+        readyFired = true;
+        var list = readyHandlers;
+        readyHandlers = [];
+        for (var i = 0; i < list.length; i++) {
+            runHandler(list[i]);
+        }
+    }
+
+    function onPusherReady(fn) {
+        if (readyFired) {
+            runHandler(fn);
+        } else {
+            readyHandlers.push(fn);
+        }
+    }
+
+    // danmu.js 会同时派发事件与调用全局回调，两个都接上；IE8 退化为 attachEvent
+    if (document.addEventListener) {
+        document.addEventListener("websitePusherReady", fireReady, false);
+    } else if (document.attachEvent) {
+        document.attachEvent("onwebsitePusherReady", fireReady);
+    }
+    window.onWebsitePusherReady = fireReady;
+
+    // 把 pushTrigger 包一层，把插件的上报打到日志里（只包一次）
+    function patchPushTrigger() {
+        var P = window.WebsitePusher;
+        if (!P || !P.pushTrigger || P.__demoPatched) return;
+        P.__demoPatched = true;
+        var origin = P.pushTrigger;
+        P.pushTrigger = function (head, body, callback) {
+            var text = body == null ? "" : String(body);
+            if (text.length > 120) text = text.substring(0, 120) + "…";
+            logLine("pushTrigger head=" + head + (text ? " body=" + text : ""));
+            return origin.call(this, head, body, function (ok) {
+                logLine("  ↳ " + head + " " + (ok ? "上报成功" : "未上报(通道未就绪或被网关拒绝)"), ok ? "ok" : "warn");
+                if (typeof callback === "function") callback(ok);
+            });
+        };
+    }
+
+    // ================= 面板状态 / 按钮 =================
+    var statusEl = document.getElementById("status");
+
+    function readLoginText() {
+        var frame = document.getElementById("pusherFrame");
+        var doc = frame && frame.contentDocument;
+        var btn = doc && doc.querySelector ? doc.querySelector(".loginButton") : null;
+        return btn ? btn.textContent.replace(/\s+/g, "") : "";
+    }
+
+    function refreshStatus() {
+        if (!statusEl) return;
+        var P = window.WebsitePusher;
+        var count = document.querySelectorAll("#pushWebAnonymous").length;
+        var login = readLoginText();
+        var loginWindow = document.querySelectorAll("#pushWeblogin").length;
+        statusEl.textContent =
+            "组件: " + (P ? "已加载" : "未加载") +
+            " | 面板: " + (count ? "已打开(" + count + ")" : "未打开") +
+            " | 登录窗口: " + (loginWindow ? "已打开" : "未打开") +
+            " | 登录入口文案: " + (login || "-") +
+            " | 当前通道码: " + ((P && P.settings && P.settings.channelCode) || "(空)");
+    }
+
+    function bind(id, handler) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (el.addEventListener) {
+            el.addEventListener("click", handler, false);
+        } else {
+            el.attachEvent("onclick", handler);
+        }
+    }
+
+    bind("btnReload", function () {
+        var input = document.getElementById("channelCode");
+        var code = input ? input.value.replace(/^\s+|\s+$/g, "") : "";
+        var url = window.location.pathname + (code ? "?channelCode=" + encodeURIComponent(code) : "");
+        window.location.href = url;
+    });
+
+    bind("btnReopen", function () {
+        var P = window.WebsitePusher;
+        if (!P) {
+            logLine("组件还没加载好，稍后再点", "warn");
+            return;
+        }
+        logLine("调用 WebsitePusher.initPusherWindow(true, \"\")");
+        P.initPusherWindow(true, "");
+        setTimeout(refreshStatus, 600);
+    });
+
+    bind("btnToggle", function () {
+        var P = window.WebsitePusher;
+        if (!P || !P.togglePusherPanel) {
+            logLine("togglePusherPanel 不存在（组件未就绪）", "warn");
+            return;
+        }
+        logLine("调用 WebsitePusher.togglePusherPanel()");
+        P.togglePusherPanel();
+        setTimeout(refreshStatus, 600);
+    });
+
+    bind("btnClose", function () {
+        var P = window.WebsitePusher;
+        if (!P || !P.closePusher) {
+            logLine("closePusher 不存在（组件未就绪）", "warn");
+            return;
+        }
+        logLine("调用 WebsitePusher.closePusher()");
+        P.closePusher();
+        setTimeout(refreshStatus, 600);
+    });
+
+    bind("btnRefresh", refreshStatus);
+
+    // ================= danmu.js 地址预览 + 就绪后的初始化 =================
+    var srcEl = document.getElementById("srcPreview");
+    var src = "../static/js/danmu.js?appName=" + encodeURIComponent("面板示例") +
+        "&danMu=0&plugins=panel" +
+        (channelCode ? "&channelCode=" + encodeURIComponent(channelCode) : "");
+
+    if (srcEl) srcEl.textContent = src;
+    var input = document.getElementById("channelCode");
+    if (input) input.value = channelCode;
+
+    // 插件是异步加载的：websitePusherReady 之后 WebsitePusher.panel 未必已挂上，轮询等一会
+    function waitPanelPlugin(startAt) {
+        var P = window.WebsitePusher;
+        if (P && P.panel) {
+            logLine("panel 插件已挂载，可调用 WebsitePusher.panel / initPusherWindow / togglePusherPanel", "ok");
+            refreshStatus();
+            return;
+        }
+        if (new Date().getTime() - startAt > 3000) {
+            logLine("没检测到 WebsitePusher.panel，检查 plugins=panel 是否加载成功", "warn");
+            return;
+        }
+        setTimeout(function () {
+            waitPanelPlugin(startAt);
+        }, 200);
+    }
+
+    onPusherReady(function () {
+        patchPushTrigger();
+        logLine("组件就绪（danmu.js 与依赖已加载）");
+        refreshStatus();
+        setInterval(refreshStatus, 800);
+        waitPanelPlugin(new Date().getTime());
+    });
+
+    // 加载本仓库的 danmu.js（路径按本页所在目录解析：examples/ -> ../static/js/）
+    var dm = document.createElement("script");
+    dm.src = src + "&t=" + new Date().getTime();
+    var first = document.getElementsByTagName("script")[0];
+    first.parentNode.insertBefore(dm, first);
+})();
+</script>
+
+
+<script>
+/* code block: auto header + copy button + light syntax highlight */
+(function () {
+    function esc(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    var TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(function|return|var|let|const|if|else|for|while|new|typeof|true|false|null|undefined)\b|([A-Za-z_$][\w$]*)(?=\s*\()/g;
+    function highlight(src) {
+        src = String(src);
+        TOKEN.lastIndex = 0;
+        var out = "", last = 0, m;
+        while ((m = TOKEN.exec(src)) !== null) {
+            out += esc(src.slice(last, m.index));
+            if (m[1]) {
+                if (src.charAt(m.index - 1) === ":") { out += esc(m[1]); }
+                else { out += '<span class="c">' + esc(m[1]) + '</span>'; }
+            } else if (m[2]) {
+                out += '<span class="s">' + esc(m[2]) + '</span>';
+            } else if (m[3]) {
+                out += '<span class="k">' + esc(m[3]) + '</span>';
+            } else {
+                out += '<span class="fn">' + esc(m[4]) + '</span>';
+            }
+            last = TOKEN.lastIndex;
+        }
+        out += esc(src.slice(last));
+        return out;
+    }
+    function applyHl(body) {
+        var text = body.textContent;
+        if (body.__cbText === text) { return; }
+        body.__cbText = text;
+        body.innerHTML = highlight(text);
+    }
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                if (document.execCommand("copy")) { resolve(); } else { reject(new Error("copy failed")); }
+            } catch (e) {
+                reject(e);
+            }
+            document.body.removeChild(ta);
+        });
+    }
+    function flash(btn, ok) {
+        var label = btn.querySelector("span") || btn;
+        label.textContent = ok ? "\u5df2\u590d\u5236" : "\u590d\u5236\u5931\u8d25";
+        setTimeout(function () { label.textContent = "\u590d\u5236"; }, 1200);
+    }
+    function bind(btn, getText) {
+        if (!btn || btn.getAttribute("data-bound")) { return; }
+        btn.setAttribute("data-bound", "1");
+        btn.addEventListener("click", function () {
+            copyText(getText()).then(function () {
+                flash(btn, true);
+            }, function () {
+                flash(btn, false);
+            });
+        });
+    }
+    var COPY_SVG = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+    function makeBtn() {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cb-btn";
+        btn.innerHTML = COPY_SVG + '<span>\u590d\u5236</span>';
+        return btn;
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("code.block"), function (el) {
+        if (el.parentNode && el.parentNode.className && String(el.parentNode.className).indexOf("cb") === 0) { return; }
+        var box = document.createElement("div");
+        box.className = "cb";
+        var head = document.createElement("div");
+        head.className = "cb-head";
+        var dots = document.createElement("span");
+        dots.className = "cb-dots";
+        dots.innerHTML = '<i class="r"></i><i class="y"></i><i class="g"></i>';
+        head.appendChild(dots);
+        head.appendChild(makeBtn());
+        box.appendChild(head);
+        el.parentNode.insertBefore(box, el);
+        box.appendChild(el);
+        el.classList.add("cb-body");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".cb"), function (box) {
+        var body = box.querySelector(".cb-body");
+        var btn = box.querySelector(".cb-btn");
+        if (body) {
+            applyHl(body);
+            if (window.MutationObserver) {
+                new MutationObserver(function () { applyHl(body); })
+                    .observe(body, { childList: true, characterData: true, subtree: true });
+            }
+        }
+        if (btn) {
+            var id = btn.getAttribute("data-copy");
+            bind(btn, function () {
+                var target = id ? document.getElementById(id) : body;
+                return target ? target.textContent : "";
+            });
+        }
+    });
+})();
+</script>
+</body>
+</html>
