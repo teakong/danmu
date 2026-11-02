@@ -626,9 +626,15 @@ try {
                                         });
                                         return;
                                     }
-                                    // 弹出输入框并获取输入值
+                                    // 输入框回填通道码后直接认领:
+                                    // 不依赖面板里的 .pusher-button(panel 插件未加载时页面上没有该元素)
                                     group.find("input[name='channelCode']").val(value);
-                                    _this.openPusherDialog(group.find(".pusher-button").get(0));
+                                    _this.claimChannel(
+                                        value,
+                                        input,
+                                        group,
+                                        group.get(0) || document.body || document,
+                                    );
                                     // 关闭输入框
                                     layer.close(index);
                                 },
@@ -647,7 +653,7 @@ try {
                 var wsUrl = resp && resp.data ? resp.data.wsUrl : "";
                 this.channelWsUrl = wsUrl ? wsUrl : "https://2120ws.phprm.com";
             },
-            channelMemberSuccess: function (resp, input, group, channelCodes) {
+            channelMemberSuccess: function (resp, input, group, channelCodes, expandDepth) {
                 var _this = this;
                 var data = resp.data;
                 _this.saveWsUrl(resp);
@@ -673,8 +679,11 @@ try {
                     _this.initPusherKF(params);
                     input.find(".lf").text(data.channelName);
                 } else if (data.pushType == 10) {
+                    // 组合通道: 为每个浏览器子通道各弹一个窗口
+                    // 不依赖面板里的 .pusher-button(panel 插件未加载时页面上没有该元素),
+                    // 直接按子通道码认领, 认领成功后走 pushType==1 分支自动弹窗
                     var counter = 0;
-                    var children = data.childrenChannelMember;
+                    var children = data.childrenChannelMember || [];
                     if (children.length == 0) {
                         console &&
                         console.error(
@@ -683,29 +692,39 @@ try {
                             "未绑定浏览器子通道, 无法弹出挂件",
                         );
                     }
+                    // 子通道本身还是组合通道时不再自动递归展开, 避免接口异常导致无限认领
+                    if (expandDepth > 0) {
+                        console &&
+                        console.error(
+                            "组合通道" +
+                            data.channelCode +
+                            "的子通道仍是组合通道, 已跳过自动展开",
+                        );
+                        children = [];
+                    }
+                    // 无面板时 anchor 退回 body: 认领通道只借它取 ownerDocument
+                    var anchor =
+                        input && input.length ? input.get(0) : document.body || document;
                     for (var i = 0; i < children.length; i++) {
                         if (children[i]["pushType"] != 1) {
                             continue;
                         }
+                        var childCode = children[i]["channelCode"];
+                        // 有面板时同步输入框: 第一个填原有输入框, 其余追加输入框;
+                        // 未加载 panel 插件时这两步都是空操作
                         if (i == 0) {
                             group
                                 .find("input[name='channelCode']")
-                                .val(children[i]["channelCode"]);
+                                .val(childCode);
                         } else {
-                            // 面板 UI 归 panel 插件: 未加载插件时这里是空操作
                             _this.openPanel("addChannelInput", [
                                 input.find("input[name='add']"),
-                                children[i]["channelCode"],
+                                childCode,
                             ]);
                         }
-                        // 立即自动触发
-                        var $pusher = input.find(".pusher-button");
-                        var next = $pusher
-                            .parents(".channel-group")
-                            .find("input[name='channelCode']")
-                            .val();
-                        if (next != channelCodes) {
-                            _this.openPusherDialog($pusher.get($pusher.length - 1));
+                        // 组合码本身不重复认领
+                        if (childCode && childCode != channelCodes) {
+                            _this.claimChannel(childCode, input, group, anchor, 1);
                         }
                         counter++;
                     }
@@ -763,8 +782,9 @@ try {
              * @param {jQuery} input 面板里的 .channel-input(无面板时传空集)
              * @param {jQuery} group 面板里的 .channel-group(无面板时传空集)
              * @param {Element|Document} anchor 用来取 ownerDocument / AI弹幕轮询文档
+             * @param {Number} [expandDepth] 组合通道自动展开层级: 0/未传=顶层, 子通道传 1
              */
-            claimChannel: function (channelCodes, input, group, anchor) {
+            claimChannel: function (channelCodes, input, group, anchor, expandDepth) {
                 var _this = this;
                 var s = _this.settings;
                 anchor = anchor || document.body || document;
@@ -823,7 +843,7 @@ try {
                                 }
                             }
                         }
-                        _this.channelMemberSuccess(resp, input, group, channelCodes);
+                        _this.channelMemberSuccess(resp, input, group, channelCodes, expandDepth);
                     },
                 });
                 return true;
