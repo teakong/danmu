@@ -2095,7 +2095,7 @@ try {
                 _this.settings.danMuQueue = null;
                 _this.settings.danMuSendOpened = false;
                 _this.settings.danMuSetting.selector = "body";
-                // 5) 清理 danmu-float.js 创建的浮窗
+                // 5) 清理左下角控制面板（plugins/control.js，兼容旧 danmu-float.js）创建的浮窗
                 var dmFloatWrap = document.querySelector(".dm-float-wrap");
                 if (dmFloatWrap) {
                     dmFloatWrap.remove();

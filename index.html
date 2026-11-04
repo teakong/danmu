@@ -670,7 +670,7 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
         appName: "AI弹幕",	 	// 必填
         danMu: 1,				// 弹幕传1
         channelCode: "3db15cb9ff360873027019296797c796",
-        plugins: "",            // 要加载的插件, 英文逗号分隔(如 "stat,ad"); 需要右上角面板写 "panel"
+        plugins: "control",     // 要加载的插件, 英文逗号分隔(如 "control,stat,ad"); 左下角控制面板写 "control", 右上角面板写 "panel"
         hideDialog: 1,			// 是否隐藏默认对话窗口
         danMuSetting: {
             hideIcon: 0,        // 0=显示右下角浮窗图标
@@ -925,6 +925,5 @@ $.getJSON("https://www.phprm.com/services/push/trigger/3db15cb9ff360873027019296
     }
     </script>
     <script type="text/javascript" src="static/js/tinycolor-0.9.15.min.js"></script>
-    <script type="text/javascript" src="static/js/danmu-float.js"></script>
 </body>
 </html>
