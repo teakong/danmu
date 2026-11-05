@@ -104,6 +104,15 @@ th{color:#666;font-weight:600;white-space:nowrap;}
     </div>
 
     <div class="card">
+        <h2>适用的网页形态（WorkBuddy 应用内页 / Qoder 站点）</h2>
+        <p>接入只有上面那一行 <code>&lt;script&gt;</code>，不用构建工具、不用后端、不用登录：页面加载上报一条 <code>head=visit</code>（<code>url</code> 取当前页面地址），页内任意元素被点击再上报一条 <code>head=click</code>。两类页面可以直接用：</p>
+        <p><b>WorkBuddy 应用</b>：应用里打开的网页（在线页面和本地 <code>file://</code> 页面都行）粘上脚本即可。<code>channelCode</code> 留空时组件按当前网址自动认领通道，页面标题 <code>document.title</code> 随认领请求一起上报，便于区分是哪个页面所属的应用。</p>
+        <p><b>Qoder 站点</b>：站点是多页面或独立子域时，把同一行脚本放进各页面、并显式写同一个 <code>channelCode</code>，整站就汇到同一条通道；看板按 <code>visit</code> 上报的 <code>url</code> 分开统计每个页面的 PV/UV。</p>
+        <p class="hint">触发接口不鉴权、不携带凭据（跨域 POST <code>{head, url, body}</code>，服务端已放开 CORS 预检），托管在任意域名的静态页都能直接上报；<code>file://</code> 双击运行见 <a href="offline.html" target="_blank" rel="noopener">offline.html</a>。</p>
+        <p class="hint">建议一个应用、一个站点各用一条通道码，统计不要混在一起。与弹幕同页时写 <code>danMu=0</code>，免得 <code>visit</code>/<code>click</code> 实时飘在页面上（规则见 <a href="multi.html" target="_blank" rel="noopener">multi.html</a>）。</p>
+    </div>
+
+    <div class="card">
         <h2>现场日志</h2>
         <div class="log" id="log"></div>
     </div>

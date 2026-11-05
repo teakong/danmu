@@ -102,6 +102,14 @@ textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #d5d8dc;b
     </div>
 
     <div class="card">
+        <h2>适用的网页形态（WorkBuddy 应用内页 / Qoder 站点）</h2>
+        <p>广告位和统计走的是同一行 <code>&lt;script&gt;</code> 接入，不依赖构建工具、不依赖后端：WorkBuddy 应用里打开的网页、Qoder 站点发布的页面，粘上脚本后都能收到同一通道的 <code>head=广告</code> 消息并在右下角出图。</p>
+        <p><b>WorkBuddy 应用</b>：应用内页面通常拿不到你自己的后端，投放直接在 <a href="https://push.phprm.com/" target="_blank" rel="noopener noreferrer">官网</a> 发广告消息（通道详情——在线测试里改图片、跳转网址、停留秒数），或者用上面「GET 请求」那条链接，浏览器地址栏打开就推出去了。</p>
+        <p><b>Qoder 站点</b>：整站各页面写同一个 <code>channelCode</code>，任一页面被打开都会展示广告位。想同时做网页统计，就在同一行脚本里写 <code>plugins=stat,ad</code>（本页只有 <code>plugins=ad</code>），组合写法见 <a href="multi.html" target="_blank" rel="noopener">multi.html</a>。</p>
+        <p class="hint">广告位靠消息流触发，写 <code>danMu=0</code> 也照常展示；再加 <code>hideIcon=1</code> 连右下角入口图标都不留，页面只剩广告位。</p>
+    </div>
+
+    <div class="card">
         <h2>可选 settings</h2>
         <table>
             <tr><th>参数</th><th>默认</th><th>说明</th></tr>

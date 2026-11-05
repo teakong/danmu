@@ -2,6 +2,14 @@
 
 一行代码，为任意网站接入弹幕系统。支持 AI 自动弹幕、WebSocket 实时推送、点赞/关闭交互、后端审核过滤，适用于个人博客、直播、评论系统等场景，无需后端开箱可用。
 
+## 使用场景
+
+| 场景 | 怎么接 | 说明 |
+| ---- | ---- | ---- |
+| 离线 HTML | 单个 html 文件里放一行云端 `<script>`，组件、插件、样式全走线上地址 | 双击 `file://` 就能跑，无需部署；`localStorage` 不可用时自动回退 cookie。示例 `examples/offline.html` |
+| WorkBuddy 应用 | 应用里打开的网页粘同一行脚本，`channelCode` 留空即按当前网址自动认领通道 | 应用侧没有你自己的后端也能用：发弹幕、看统计直接走官网或 GET 触发链接 |
+| Qoder 站点 | 站点各页面写同一个 `channelCode`，整站汇到一条通道 | `plugins=stat` 做网页统计（`danMu=0` 时 visit/click 不会打屏），`plugins=ad` 出广告位，可 `plugins=stat,ad` 同时加载 |
+
 ## 在线演示
 
 | 页面 | 地址 | 说明 |
