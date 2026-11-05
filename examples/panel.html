@@ -57,7 +57,7 @@ th{color:#666;font-weight:600;white-space:nowrap;}
 
 <div class="wrap">
     <h1>panel 插件示例</h1>
-    <p class="sub">加载 <code>plugins=panel</code> 后，页面右上角出现推送面板：通道码、登录账户、增加更多通道、弹幕设置，以及打开/关闭面板的 API。</p>
+    <p class="sub">加载 <code>plugins=panel,control,input,ad</code> 后，页面右上角出现推送面板：通道码、登录账户、增加更多通道、弹幕设置，以及打开/关闭面板的 API；本页同时把左下角齿轮（<code>control</code>）、底部发送框（<code>input</code>）和广告位（<code>ad</code>）一起加载，看四者共存的效果。</p>
 
     <div class="card">
         <h2>本页加载的地址（可直接抄走）</h2>
@@ -266,7 +266,7 @@ th{color:#666;font-weight:600;white-space:nowrap;}
     // ================= danmu.js 地址预览 + 就绪后的初始化 =================
     var srcEl = document.getElementById("srcPreview");
     var src = "../static/js/danmu.js?appName=" + encodeURIComponent("面板示例") +
-        "&danMu=0&plugins=panel" +
+        "&danMu=0&plugins=panel,control,input,ad" +
         (channelCode ? "&channelCode=" + encodeURIComponent(channelCode) : "");
 
     if (srcEl) srcEl.textContent = src;

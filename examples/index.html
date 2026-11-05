@@ -53,7 +53,7 @@
 
 <div class="wrap">
   <h1>danmu 插件示例</h1>
-  <p class="sub">当前示例包含访问统计、异常汇报、广告推送插件，可以在 <a href="https://push.phprm.com/message.html" target="_blank" rel="noopener noreferrer">官网</a> 添加飞书、钉钉、企业微信、邮件，把异常和访问记录推送到你的手机上，还可以使用 <a href="md2html/index.html" target="_blank" rel="noopener noreferrer">markdown转html</a> 将你的学习资料转化为可推送广告的离线HTML文件收入变现。</p>
+  <p class="sub">当前示例包含访问统计、异常汇报、广告推送插件，可以在 <a href="https://push.phprm.com/message.html" target="_blank" rel="noopener noreferrer">官网</a> 添加飞书、钉钉、企业微信、邮件，把异常和访问记录推送到你的手机上，还可以使用 <a href="md2html/index.html" target="_blank" rel="noopener noreferrer">markdown转html</a> 或 <a href="https://www.phprm.com/develop/pdf-html.html" target="_blank" rel="noopener noreferrer">PDF转html</a> 将你的学习资料转化为可推送广告的离线HTML文件收入变现（离线包不用部署服务器，读者打开页面时联网就能收到统计与推送）。</p>
 
   <div class="card">
     <h2>运行方式</h2>
@@ -73,7 +73,7 @@
       <tr>
         <td><span class="tag">panel</span></td>
         <td><a href="panel.html" target="_blank" rel="noopener">panel.html</a></td>
-        <td>右上角推送面板：通道码、登录账户、增加通道、弹幕设置，以及打开/关闭面板的 API。</td>
+        <td>右上角推送面板：通道码、登录账户、增加通道、弹幕设置，以及打开/关闭面板的 API。本页配置 <code>plugins=panel,control,input,ad</code>。</td>
       </tr>
       <tr>
         <td><span class="tag">stat</span></td>
@@ -101,9 +101,14 @@
         <td>多插件组合（<code>plugins=stat,ad</code>）：统计与广告位同时生效。</td>
       </tr>
       <tr>
-        <td><span class="tag">离线双击</span></td>
+        <td><span class="tag">离线统计</span></td>
         <td><a href="offline.html" target="_blank" rel="noopener">offline.html</a></td>
-        <td>单个 html 双击（<code>file://</code>）：组件走线上地址，演示弹幕 + 广告位。</td>
+        <td>单个 html 双击（<code>file://</code>）：组件走线上地址，演示访问统计 + 广告位，<code>plugins=stat,ad&amp;danMu=0</code>。</td>
+      </tr>
+      <tr>
+        <td><span class="tag">离线弹幕</span></td>
+        <td><a href="offline-danmu.html" target="_blank" rel="noopener">offline-danmu.html</a></td>
+        <td>单个 html 双击（<code>file://</code>）：组件走线上地址，演示弹幕，<code>plugins=control,input,ad&amp;danMu=1</code>。</td>
       </tr>
     </table>
   </div>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="纯前端 Markdown 转 HTML 工具：把 markdown 文件转成离线 html，可输入 32 位 16 进制通道码生成带通道码的 html；上传已带通道码的 html 可自动识别并替换。全程浏览器本地运行，文件不上传服务器。" />
+<meta name="description" content="纯前端 Markdown 转 HTML 工具：把 markdown 文件转成离线 html，可输入 32 位通道码生成带通道码的 html；上传已带通道码的 html 可自动识别并替换。全程浏览器本地运行，文件不上传服务器。" />
 <title>Markdown转HTML工具 - 加通道码 / 提取通道码（本地处理，不上传）</title>
 <meta name="theme-color" content="#1a9e5a" />
 
@@ -78,7 +78,7 @@
         <label class="lab" for="ccInput">通道码</label>
         <input type="text" id="ccInput" maxlength="32" placeholder="32位字符串，留空=不带通道码" />
       </div>
-      <p class="hint">通道码为 32 位 16 进制字符串（例：<code>3db15cb9ff360873027019296797c796</code>），到<a href="https://push.phprm.com/message.html" target="_blank">一封传话官网</a>注册后获取；生成的 html 会加载 danmu.js。</p>
+      <p class="hint">通道码是 32 位字符串（数字和字母组成，例：<code>3db15cb9ff360873027019296797c796</code>），到<a href="https://push.phprm.com/message.html" target="_blank">一封传话官网</a>注册后获取；生成的 html 会加载 danmu.js。</p>
 
       <div class="row" style="margin-top:12px">
         <button class="btn primary act" id="btnChannel">添加通道码并下载</button>
@@ -123,7 +123,7 @@
             <li><b>统计打开次数</b>：生成的网页会自动记录被打开的次数，压缩包、网盘分享的也一样算，随时知道资料火不火、最近有没有人看。</li>
             <li><b>加入动态广告</b>：网页里能嵌入广告，别人打开时自动展示，通过夸克网盘分享链接、京东、淘宝客双十一活动链接等赚取佣金。</li>
             <li><b>识别与更换设置</b>：上传之前生成的网页，能自动认出里面已有的通道码；填新的下载即替换，不想留也可以移除。</li>
-            <li><b>纯本地</b>：生成、修改全部在自己电脑上完成，文件不上传、不落盘。</li>
+            <li><b>纯本地</b>：生成、修改全部在自己电脑上完成，文件不上传，网站上也不留副本。</li>
           </ul>
         </div>
         <div id="how">
@@ -141,11 +141,15 @@
         <h3>常见问题</h3>
         <details open>
           <summary>这个工具能做什么？</summary>
-          <p class="faq-a">把 markdown 文件转成离线 html（可注入 32 位 16 进制通道码，让页面带上该通道的弹幕）；同时能从已生成的 html 里识别、替换或移除通道码。全部在你自己的浏览器里完成。</p>
+          <p class="faq-a">把 markdown 文件转成离线 html（可填上 32 位通道码，让页面带上该通道的弹幕）；同时能从已生成的 html 里识别、替换或移除通道码。全部在你自己的浏览器里完成。</p>
+        </details>
+        <details>
+          <summary>手头的资料是 PDF，不是 markdown，怎么办？</summary>
+          <p class="faq-a">先用 <a href="https://www.phprm.com/develop/pdf-html.html" target="_blank" rel="noopener">PDF转html</a> 把 PDF 转成离线 HTML（同样是浏览器里完成的<b>纯前端</b>工具），再把转出来的 html 传回本页填上通道码。之后有人下载打开就是一条访问记录，官网绑定飞书、钉钉、企业微信、邮箱后手机上实时收到访问提醒；离线包不用部署服务器，读者打开页面时联网就能持续给他推<b>广告图 + 链接</b>（<code>plugins=ad</code>，例如双十一活动页），点击跳转就是收入变现。</p>
         </details>
         <details>
           <summary>需要上传文件吗？会不会泄露？</summary>
-          <p class="faq-a">不需要。文件用浏览器本地读取，Markdown 解析、通道码注入与替换全部在当前标签页内完成，服务器上没有落盘、没有日志、没有账号体系。关掉页面就什么都不剩。</p>
+          <p class="faq-a">不需要。文件用浏览器本地读取，Markdown 转换、通道码替换全部在当前标签页内完成，服务器上不存文件、没有日志、也不用注册账号。关掉页面就什么都不剩。</p>
         </details>
         <details>
           <summary>通道码是什么？</summary>

@@ -47,4 +47,4 @@ md2html/
 
 # PDF 转 HTML（离线版）
 
-如有PDF 转 HTML 离线文档的需求可访问 [在线工具 · markdown转html](https://www.phprm.com/develop/pdf-html.html) 的**纯前端**工具。
+如有PDF 转 HTML 离线文档的需求可访问 [在线工具 · PDF 转 HTML](https://www.phprm.com/develop/pdf-html.html) 的**纯前端**工具。
