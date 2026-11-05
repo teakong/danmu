@@ -66,8 +66,8 @@ button[disabled]{opacity:.55;cursor:default;}
         <h2>本页加载的地址（可直接抄进你的页面）</h2>
         <code class="block" id="srcPreview">…</code>
         <code class="block">&lt;script src="https://ws.phprm.com/static/customer/js/danmu.js
-        ?appName=你的应用名&amp;channelCode=你的通道码&amp;danMu=1&amp;hideDialog=1&amp;hideIcon=1&amp;plugins=stat,ad"&gt;&lt;/script&gt;</code>
-        <p class="hint">参数含义：<code>danMu=1</code> 渲染弹幕；<code>hideDialog=1</code> 不弹对话窗；<code>hideIcon=1</code> 不显示右下角入口图标；<code>plugins=stat,ad</code> 加载统计与广告位（只做广告就写 <code>plugins=ad</code>）。</p>
+        ?appName=你的应用名&amp;channelCode=你的通道码&amp;danMu=0&amp;hideDialog=1&amp;hideIcon=1&amp;plugins=stat,ad"&gt;&lt;/script&gt;</code>
+        <p class="hint">参数含义：<code>danMu=0</code> 不渲染弹幕（stat 上报的 visit/click 不会打屏，ad 广告位照常展示）；<code>hideDialog=1</code> 不弹对话窗；<code>hideIcon=1</code> 不显示右下角入口图标；<code>plugins=stat,ad</code> 加载统计与广告位（只做广告就写 <code>plugins=ad</code>）。</p>
     </div>
 
     <div class="card">
@@ -217,7 +217,7 @@ button[disabled]{opacity:.55;cursor:default;}
     // 加载线上组件（绝对地址，保证单独拷贝本 html 也能跑）
     var src = "https://ws.phprm.com/static/customer/js/danmu.js?appName=" + encodeURIComponent("离线弹幕示例") +
         "&channelCode=" + encodeURIComponent(CHANNEL) +
-        "&danMu=1&hideDialog=1&hideIcon=1&plugins=" + encodeURIComponent("stat,ad");
+        "&danMu=0&hideDialog=1&hideIcon=1&plugins=" + encodeURIComponent("stat,ad");
     document.getElementById("srcPreview").textContent = src;
 
     onReadyInit();
@@ -225,7 +225,7 @@ button[disabled]{opacity:.55;cursor:default;}
     function onReadyInit() {
         readyHandlers.push(function () {
             patchPushTrigger();
-            logLine("组件就绪：弹幕 + stat 统计 + ad 广告位");
+            logLine("组件就绪：stat 统计 + ad 广告位（danMu=0，普通消息不渲染弹幕）");
             // 等广告插件接管消息闸门，并且通道连上（或已经等了 3 秒）再放开按钮：
             // 太早点推送，消息可能赶在 socket 入房之前发出去而收不到
             var startAt = new Date().getTime();

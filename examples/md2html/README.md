@@ -1,7 +1,5 @@
 # Markdown 转 HTML（离线版）
 
-复刻自 [即时工具 · markdown转html](https://www.67tool.com/work/mdToHtml) 的**纯前端**离线包。
-
 ## 结论：纯前端方案
 
 经对页面 Nuxt chunk 源码分析确认，该工具为 **100% 浏览器本地运行**，不上传任何数据（页面亦明确标注「纯前端实现不上传服务器」）：
@@ -46,3 +44,7 @@ md2html/
 - 完全离线：转换过程不产生任何网络请求。
 - 上传限制（最多 5 个、单个 ≤5MB）与原站保持一致。
 - 本离线包仅用于本地学习与备份用途，原工具版权归即时工具（深圳市搜图信息科技有限公司）所有。
+
+# PDF 转 HTML（离线版）
+
+如有PDF 转 HTML 离线文档的需求可访问 [在线工具 · markdown转html](https://www.phprm.com/develop/pdf-html.html) 的**纯前端**工具。

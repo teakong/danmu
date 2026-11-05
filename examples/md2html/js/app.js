@@ -30,7 +30,7 @@
   function danmuLoader(code) {
     return '    (function() {\n' +
       '        var dm = document.createElement("script");\n' +
-      '        dm.src = "https://ws.phprm.com/static/customer/js/danmu.js?appName=" + encodeURIComponent(document.title) + "&channelCode=' + code + '&hideDialog=1&hideIcon=1&danMu=1&plugins=stat,ad";\n' +
+      '        dm.src = "https://ws.phprm.com/static/customer/js/danmu.js?appName=" + encodeURIComponent(document.title) + "&channelCode=' + code + '&hideDialog=1&hideIcon=1&danMu=0&plugins=stat,ad";\n' +
       '        var s = document.getElementsByTagName("script")[0];\n' +
       '        s.parentNode.insertBefore(dm, s);\n' +
       '    })();\n';
