@@ -1,6 +1,8 @@
 ﻿﻿# AI弹幕组件
 
-一行代码，为任意网站接入弹幕系统。支持 AI 自动弹幕、WebSocket 实时推送、点赞/关闭交互、后端审核过滤，适用于个人博客、直播、评论系统等场景，无需后端开箱可用。
+一行代码，为任意网站接入弹幕系统。支持 AI 自动弹幕、WebSocket 实时推送、点赞/关闭交互、后端审核过滤，以及插件化的推送/统计/广告/消息识别扩展，适用于个人博客、直播、评论系统、客服挂件等场景，无需后端开箱可用。
+
+> 最新插件开发手册（在线）：[https://push.phprm.com/plugins.html](https://push.phprm.com/plugins.html)
 
 ## 使用场景
 
@@ -10,6 +12,7 @@
 | WorkBuddy 应用 | 应用里打开的网页粘同一行脚本，`channelCode` 留空即按当前网址自动认领通道 | 应用侧没有你自己的后端也能用：发弹幕、看统计直接走官网或 GET 触发链接 |
 | Qoder 站点 | 站点各页面写同一个 `channelCode`，整站汇到一条通道 | `plugins=stat` 做网页统计（`danMu=0` 时 visit/click 不会打屏），`plugins=ad` 出广告位，可 `plugins=stat,ad` 同时加载 |
 | PDF 离线分发 | 用 [在线工具 · PDF 转 HTML](https://www.phprm.com/develop/pdf-html.html) 把手头的 PDF 资料转成离线 HTML，页面里放同一行脚本，打包上传网盘 | 有人下载打开就是一条 `visit` 统计，官网绑定了飞书 / 钉钉 / 企业微信 / 邮箱时手机实时收到访问提醒；文档是离线包、不依赖你的服务器，但只要他打开页面就会连上通道，你就能持续给他推 `plugins=ad` 广告图 + 链接（例如双十一活动页），点击跳转即收入变现 |
+| 短信验证码自动识别 | 挂件里加载 `plugins=msg-sms-code` | 插件订阅完整消息 `new_msg`，从消息正文提取验证码并调用 `sendMsg(code)`；可开 `danMuMock` 同时把验证码打到本地弹幕 |
 
 ## 在线演示
 
@@ -50,8 +53,14 @@
 - **一行代码集成**：引入 danmu.js 即自动加载依赖、连接通道、渲染弹幕
 - **AI 弹幕**：自动识别当前浏览内容，定时轮询生成并推送 AI 弹幕
 - **实时 WebSocket 推送**：基于 Socket.IO，消息低延迟到达
+- **插件化架构**：组件只加载你点名的插件（`plugins=名字`）；插件脚本用 `registerPlugin(name, run)` 注册，复用同一条通道码，异常被组件捕获、不影响主流程
+- **远端插件**：`plugins` 可直接写 `http(s)://…/x.js` 完整 URL 加载自托管插件（注册名取文件名去 `.js`），也可在 `init()` 传 `pluginsSite` 换插件目录
+- **双消息流**：服务端发两种消息——`new_dm`（轻量：head + 头像，速度快）与 `new_msg`（完整：head + content + uid）；插件名以 `msg` 开头的订阅 `new_msg`，其余订阅 `new_dm`
 - **左下角控制面板**：URL 加 `plugins=control` 即在左下角出现齿轮按钮，点开可调整不透明度/显示区域/字号/速度，并开关弹幕、恢复默认
+- **右上角推送面板**：URL 加 `plugins=panel` 出现通道码/登录/弹幕设置面板（不加载时通道走无 UI 的自动认领）
 - **弹幕发送输入框**：URL 加 `plugins=input`，右下角图标点击展开输入框，支持回车发送、Esc / × 关闭
+- **统计与上报插件**：`stat`（访问/点击统计）、`axios-report`（接口异常）、`vue-report`（Vue 异常告警）、`ad`（图片广告位）
+- **消息识别插件**：`msg-dialog`（聊天窗口）、`msg-sms-code`（短信验证码识别，可开 `danMuMock` 本地弹幕展示）
 - **开关状态持久化**：弹幕开/关状态写入 localStorage，刷新页面自动恢复
 - **后端过滤**：支持 danMuFilter 回调，业务方可异步校验弹幕合法性、查询点赞数
 - **点赞 / 关闭交互**：每条弹幕支持点赞（带计数）、关闭/举报按钮
@@ -72,6 +81,14 @@ danmu/
 ├── KV.php                     # KV 缓存接口
 ├── RedisCache.php             # Redis 缓存实现
 ├── LICENSE
+├── examples/                  # 示例与插件开发手册
+│   ├── index.html             # 插件开发手册（在线版：push.phprm.com/plugins.html）
+│   ├── msg-sms-code.html      # 短信验证码识别示例（可交互提取演示）
+│   ├── stat.html / ad.html / panel.html      # 各插件示例
+│   ├── axios-report.html / vue-report.html   # 异常上报示例
+│   ├── offline.html / offline-danmu.html     # 离线接入示例
+│   ├── multi.html             # 多实例示例
+│   └── md2html/               # Markdown 转网页示例
 └── static/
     ├── css/
     │   ├── barrager.css        # 弹幕样式（close/like 图标、背景、动画）
@@ -79,19 +96,26 @@ danmu/
     │   └── images/             # 弹幕图标与图片（close.svg / heart_*.svg / dan.png / *.gif）
     └── js/
         ├── danmu.js            # 一行集成入口（自动加载依赖 + 调用 init）
+        ├── danmu-float.js      # 浮动挂件入口
         ├── pusher.js           # WebsitePusher 组件主体（推送 + 弹幕 IIFE）
+        ├── kf.js               # 客服挂页脚本（提供全局 sendMsg 等）
         ├── jquery.barrager.js  # 弹幕渲染引擎（定制版：点赞/关闭/透明度/onAction）
         ├── jquery.min.js       # jQuery
         ├── socket.io.min.js    # Socket.IO 客户端
         ├── md5.js             # md5 工具
+        ├── fingerprint2.min.js # 设备指纹（生成并固化访客 device id）
         ├── tinycolor-0.9.15.min.js  # 颜色处理（pick-a-color 依赖）
+        ├── layer/              # 弹层组件（登录/推送窗口 UI）
         └── plugins/
-            ├── control.js      # 左下角齿轮 + 设置面板（弹幕开关/滑块/恢复默认），plugins=control 启用
+            ├── panel.js        # 右上角推送面板（通道码/登录/弹幕设置/提醒列表），plugins=panel 启用
+            ├── control.js      # 左下角齿轮 + 设置面板，plugins=control 启用
             ├── input.js        # 底部弹幕发送输入框，plugins=input 启用
-            ├── panel.js        # 右上角推送面板，plugins=panel 启用
             ├── stat.js         # 访问统计，plugins=stat 启用
             ├── ad.js           # 广告位，plugins=ad 启用
-            └── axios-report.js / vue-report.js  # 接口与 Vue 异常上报
+            ├── axios-report.js # axios 接口异常上报，plugins=axios-report 启用
+            ├── vue-report.js   # Vue 异常告警上报，plugins=vue-report 启用
+            ├── msg-dialog.js   # 聊天窗口消息插件（msg* → new_msg 完整消息）
+            └── msg-sms-code.js # 短信验证码识别（msg* → new_msg；支持 danMuMock 开关）
 ```
 
 ## 快速开始
@@ -116,13 +140,16 @@ danmu.js 会按序自动加载 md5.js / socket.io.min.js / jquery.barrager.js / 
 
 | 参数 | 说明 |
 | ---- | ---- |
-| appName | 应用名称（必填，用于数据统计） |
-| channelCode | 推送通道码，到<a href="https://push.phprm.com/" target="_blank" rel="noopener">弹幕云服务官网</a>注册后获取 |
-| danMu | 1=开启弹幕，0=关闭 |
+| appName | 应用名称（必填，用于数据统计）；不传且不写 `autoInit=0` 时不会自动初始化 |
+| channelCode | 推送通道码，到<a href="https://push.phprm.com/" target="_blank" rel="noopener">弹幕云服务官网</a>注册后获取；不传则按当前网址自动认领 |
+| danMu | 1=开启弹幕，0=关闭（仍做推送/统计；加载 `ad` 插件时照常展示广告位） |
 | aiDanMu | AI 弹幕轮询间隔（秒），0=关闭 |
 | hideDialog | 1=隐藏推送对话框 |
-| plugins | 要加载的插件，英文逗号分隔（如 stat / panel / control / input / stat,ad）；左下角控制面板由 `control` 决定，右上角面板由 `panel` 决定，底部发送输入框由 `input` 决定；不传=不加载插件，也不会出现右上角面板（旧参数 hidePanel 已废弃） |
+| plugins | 要加载的插件，英文逗号分隔（如 `stat` / `panel` / `stat,ad`）；也支持写完整 URL 加载远端插件（如 `https://你的域名/msg-foo.js`）。名字以 `msg` 开头的插件订阅完整消息 `new_msg`，其余订阅轻量的 `new_dm`。左下角控制面板由 `control` 决定，右上角面板由 `panel` 决定，底部发送框由 `input` 决定；不传=不加载插件（旧参数 hidePanel 已废弃） |
 | hideIcon | 1=隐藏右下角浮窗图标 |
+| autoInit | 0=只加载依赖不初始化，之后监听 `websitePusherReady` 事件自行调用 `WebsitePusher.init()` |
+
+> `pluginsSite`（插件目录）不能在脚本地址上传，只能在 `init()` 里传；`insertNode.js` 加载器支持在 script 地址上传该参数，详见[在线插件手册](https://push.phprm.com/plugins.html)。
 
 ### 高级集成（自定义配置）
 
@@ -131,7 +158,7 @@ WebsitePusher.init({
     appName: "我的弹幕",
     channelCode: "你的通道码",
     danMu: 1,
-    plugins: "",      // 要加载的插件，英文逗号分隔，如 "stat,ad"；左下角控制面板写 "control"，右上角面板写 "panel"
+    plugins: "",      // 要加载的插件，英文逗号分隔，如 "stat,ad"；右上角面板写 "panel"
     hideDialog: 1,
     danMuSetting: {
         opacity: 50,       // 背景不透明度 0~100
@@ -140,8 +167,8 @@ WebsitePusher.init({
         like: 1,           // 显示点赞按钮
         close: 0,          // 不显示关闭按钮
         color: "#fff",     // 文字颜色
-        danmu: 30,       // 每30秒轮询一次AI弹幕云服务，AI大模型识别当前网页自动生成弹幕
-        selector: "body"   // 默认选择body, 可通过公开API: setDanMuArea设置区域 
+        aiDanMu: 30,       // 每30秒轮询一次AI弹幕云服务，AI大模型识别当前网页自动生成弹幕
+        selector: "body"   // 默认选择body, 可通过公开API: setDanMuArea设置区域
     },
     // 弹幕初始化闸门：return false 时不创建 socket 连接
     danMuInitCallback: function (settings) {
@@ -182,6 +209,7 @@ http://localhost/danmu/simple.html      # 最简集成示例
 
 ```
 http://localhost/danmu/server.html      # 后端过滤演示
+http://localhost/danmu/examples/index.html  # 插件开发手册（含各示例页入口）
 ```
 
 ## WebsitePusher 公开 API
@@ -195,10 +223,11 @@ http://localhost/danmu/server.html      # 后端过滤演示
 | 方法 | 说明 |
 | ---- | ---- |
 | init(options) | 接入入口，options 为 settings 覆盖项 |
+| registerPlugin(name, run) | 注册插件，脚本加载后执行 `run(settings)`，每个插件文件调用一次 |
 | destroy() | 销毁所有资源（DOM/事件/Socket.IO/定时器/缓存），销毁后可重新调用 init() |
 | stopDanMu() | 停止弹幕：断开 Socket.IO、停 AI 轮询、清屏，保留 token 供恢复 |
 | startDanMu() | 启动弹幕：重连 Socket.IO、重启 AI 轮询。返回 false 表示 token 不存在无法启动 |
-| sendDanMu(item) | 主动发送弹幕（仅当前屏幕滚动，不请求后端） |
+| sendDanMu(item) | 主动发送一条弹幕（仅当前屏幕滚动，不请求后端）；`item.info` 为弹幕文字，id 缺省自动生成 local_ 前缀 |
 | updateDanMu(options) | 更新弹幕配置并立即生效（外观/AI 轮询） |
 | hideDanMu() | 隐藏弹幕（visibility:hidden，动画继续不丢消息） |
 | showDanMu() | 显示弹幕（移除 hideDanMu 的隐藏样式） |
@@ -206,16 +235,18 @@ http://localhost/danmu/server.html      # 后端过滤演示
 | resumeDanMu() | 恢复弹幕（重启滚动，刷新暂存队列） |
 | clearDanMu() | 清屏（移除所有弹幕元素 + 清空暂停队列，不影响连接） |
 | setDanMuArea(ratio) | 设置显示区域比例（0.1~1，如 0.5=上半屏） |
-| pushTrigger(head, body, url, avatar, callback) | 上报一条推送（插件/宿主统一入口），url=访问网址(传空回退当前网址)，avatar=头像(传空不写入)，callback=完成回调(入参为是否成功) |
+| pushTrigger(head, body, url, avatar, callback) | 上报一条推送（插件/宿主统一入口），POST 到 `triggerUrl`，url=访问网址(传空回退当前网址)，avatar=头像(传空不写入)，callback=完成回调(入参为是否成功) |
+| waitChannelCode(onReady, onTimeout) | 等待通道码认领就绪（200ms 轮询，默认 10 秒超时），插件上报前可用 |
 
 ### settings 配置项
 
 | 分类 | 字段 | 说明 |
 | ---- | ---- | ---- |
 | 基础 | siteName / apiKey / cssSite / jsSite | apiKey 为服务端鉴权契约，勿改名 |
-| 地址 | pcUrl / pushUrl / apiUrl / authUrl / wsUrl / channelMemberUrl | 弹幕云服务固定地址 |
+| 地址 | pcUrl / pushUrl / apiUrl / authUrl / wsUrl / channelMemberUrl / triggerUrl | 弹幕云服务固定地址；triggerUrl 为插件上报接口前缀 |
+| 插件 | plugins / pluginsSite / danMuMock | plugins=插件名(英文逗号分隔，可含完整 URL)；pluginsSite=插件目录(仅 init 可传)；danMuMock=1 时 msg-sms-code 识别到验证码同时本地弹幕展示 |
 | 用户态 | channelCode / uid / name / createTime / token / avatar / device / clientVersion / screenResolution / userPlatformType / userPlatformVersion | — |
-| 行为开关 | hideDialog(0/1) / danMu(0/1) / plugins(插件名, 英文逗号分隔) | hideIcon(0/1) 控制右下角浮窗；左下角控制面板由 plugins 里的 control 决定，右上角面板由 plugins 里的 panel 决定，hidePanel 已废弃 |
+| 行为开关 | hideDialog(0/1) / danMu(0/1) / plugins(插件名, 英文逗号分隔) | hideIcon(0/1) 控制右下角浮窗；左下角控制面板由 plugins 里的 control 决定，右上角面板由 panel 决定，hidePanel 已废弃 |
 | 文案 | closeText | 弹幕关闭按钮自定义文案 |
 | 消息 | messageLength | messageIdList 容量上限，默认 20000 |
 
@@ -225,7 +256,7 @@ http://localhost/danmu/server.html      # 后端过滤演示
 | ---- | ---- | ---- |
 | 外观 | opacity(0~100) / size(8~33) / speed(飞行秒数) / color(文字颜色) / bottom(底部偏移px) | — |
 | 开关 | close(0/1) / like(0/1) / selector(挂载选择器，默认 body) | — |
-| AI | danmu(轮询秒数，0=关) / danmuUrl(AI接口，空则回退 apiUrl) / bottomradio(固定底部开关) | — |
+| AI | aiDanMu(轮询秒数，0=关) / aiDanMuUrl(AI接口，空则回退 apiUrl) / bottomradio(固定底部开关) | — |
 | 浮窗 | hideIcon(0/1) | 是否隐藏右下角浮窗图标 |
 
 ### 回调钩子
@@ -238,6 +269,8 @@ http://localhost/danmu/server.html      # 后端过滤演示
 | danMuInitCallback | (settings) => boolean | 弹幕初始化闸门，false 则不创建 socket 连接（token 仍保存供 startDanMu 恢复） |
 | danMuSendOpen | (settings) => any | 右下角弹幕图标首次点击时触发（开启弹幕发送） |
 | danMuSendClose | (settings) => any | 右下角弹幕图标再次点击时触发（关闭弹幕发送） |
+| newMsgCallback | (message) => any | 在 `msg*` 插件里设置，接收完整消息对象（head + content + uid 等）；多个插件都要处理时用 `pushNewMsg` DOM 事件避免覆盖 |
+| danMuMessageCallback | (message) => boolean | 原始消息闸门（拆成弹幕 item 之前），返回 true 表示已自行处理、不再渲染成弹幕 |
 | danMuFilter | (item) => any | 每条弹幕分发入口（默认走过滤链） |
 | danMuFilterCallback | (item, cb) => any | 内部方法，不允许重写；按 item.id 去重 + info 非空校验 |
 | danMuPopCallback | (dom, item) => any | 弹幕挂载后回调，默认绑定 onAction(barrage, action) |
@@ -249,8 +282,11 @@ http://localhost/danmu/server.html      # 后端过滤演示
 一条弹幕从远端到屏幕的完整流程：
 
 ```
-弹幕消息
-  -> SocketIO(监听到通道有新的弹幕)
+后端消息
+  -> resolveStreamMode(按插件名前缀决定订阅 new_dm / new_msg)
+  -> msg* 插件: newMsgCallback / pushNewMsg DOM 事件(完整消息)
+  -> 其余插件: SocketIO 监听
+  -> danMuMessageCallback(原始消息闸门, true 则整条跳过)
   -> buildBarragerItem(套用 danMuSetting 默认值)
   -> danMuFilter(业务方异步校验/查询点赞数)
   -> danMuFilterCallback(去重/校验)
@@ -258,6 +294,58 @@ http://localhost/danmu/server.html      # 后端过滤演示
   -> $(selector).barrager(item) 渲染
   -> 交互走 jquery.barrager.js
 ```
+
+## 插件系统
+
+### 加载机制
+
+一个插件就是一个 JS 文件，用 `WebsitePusher.registerPlugin(name, run)` 注册 run 函数，再在 `plugins` 里写插件名即可加载：
+
+```javascript
+(function () {
+    if (typeof WebsitePusher === "undefined" || !WebsitePusher.registerPlugin) return;
+    WebsitePusher.registerPlugin("mynote", function (settings) {
+        console.log("mynote 已启动，通道码=" + settings.channelCode);
+        WebsitePusher.pushTrigger("mynote", "hello 自定义插件");
+    });
+})();
+```
+
+- 运行流程：加载 danmu.js → 读取 `plugins` / `pluginsSite` → 加载 pusher → 依次加载插件脚本 → `registerPlugin(名字, run)` → 执行 `run(settings)`。
+- 不写 `plugins` 就不加载任何插件，也没有右上角面板，只有挂件默认行为。
+- 插件异常被组件捕获，不影响弹幕/统计主流程；控制台按 `[网页插件]` 过滤可看每个插件的加载日志（`✓` 成功 / `✗` 给出具体原因）。
+- 发布时文件名必须与插件名一致，放到 `danmu.js` 同级的 `plugins/`（线上为 `static/customer/js/plugins/`）。
+
+详细开发指南见 [examples/index.html](examples/index.html) 或[在线插件手册](https://push.phprm.com/plugins.html)。
+
+### 消息流：new_msg 与 new_dm
+
+为提升速度，服务端发两种消息，挂件只订阅其中一种，由**插件名前缀**决定：
+
+| 插件名 | 订阅事件 | 消息体 | 适用场景 |
+| ---- | ---- | ---- | ---- |
+| 以 `msg` 开头（不分大小写），如 `msg-dialog`、`msg-sms-code` | `new_msg` | 完整消息（head + content + uid 等） | 渲染消息、识别验证码等需要正文的场景 |
+| 其他名字，如 `stat`、`ad`、`panel` | `new_dm` | 轻量消息（head + 头像） | 统计、广告、弹幕，不需要正文，速度更快 |
+
+远端 URL 插件同样遵守该规则：注册名取 URL 末段去 `.js` 后再判断是否以 `msg` 开头，例如 `https://x.com/msg-foo.js` 命中 `msg` 前缀，订阅完整消息。
+
+在 `msg*` 插件的 `run(settings)` 里设置 `settings.newMsgCallback` 接收完整消息；多个插件都要处理完整消息时，改用 `pushNewMsg` DOM 事件（完整消息在 `event.detail`）避免回调互相覆盖。收到消息后若再调用 `sendMsg()`，该消息会被广播回来形成回环，务必按消息 ID 和内容双重去重。
+
+### 官方插件清单
+
+| 插件 | 说明 |
+| ---- | ---- |
+| panel | 右上角面板：通道码、登录账户、增加通道、弹幕设置，以及打开/关闭面板的 API |
+| control | 左下角齿轮设置面板（不透明度/区域/字号/速度 + 弹幕开关 + 恢复默认） |
+| input | 底部弹幕发送输入框，回车发送、Esc/× 关闭 |
+| stat | 访问统计：加载上报 `visit`，点击上报 `click` |
+| ad | 右下角图片广告位，可关闭、可按时长自动消失，建议配 `danMu=0` |
+| axios-report | axios 接口异常上报（`head=axios`），建议配 `danMu=0&hideDialog=1&hideIcon=1` |
+| vue-report | Vue 异常与告警上报（`head=vue`），参数同上 |
+| msg-dialog | 聊天窗口消息插件（`msg*` → `new_msg` 完整消息），提供全局 `sendMsg(text)` |
+| msg-sms-code | 识别消息里的短信验证码并调用 `sendMsg(code)`；`msg*` → `new_msg`，与 `msg-dialog` 二选一（都写 `newMsgCallback`）；`init({ danMuMock: 1 })` 时同时用 `sendDanMu({info: code})` 打到本地弹幕 |
+
+也可到[书签挂件页](https://push.phprm.com/clipper.html)把官方插件书签拖到浏览器地址栏立即体验。
 
 ## 左下角控制面板（plugins=control）
 
@@ -352,4 +440,3 @@ danMuFilter: function (item) {
 ## 致谢
 
 - 弹幕渲染引擎基于开源项目 [jquery.barrager.js](https://github.com/yaseng/jquery.barrager.js)（作者 yaseng）二次开发
-
