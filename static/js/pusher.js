@@ -750,33 +750,6 @@ try {
                 return this.claimChannel(channelCodes, input, group, button);
             },
             /**
-             * 是否需要建立消息流(Socket.IO 连接):
-             *   1) danMu=1: 正常渲染弹幕;
-             *   2) danMu=0 但加载了 ad 插件: 广告位靠消息流触发, 仍要收消息, 只是不渲染弹幕。
-             */
-            needDanMuStream: function () {
-                var s = this.settings;
-                if (s.danMu == 1) {
-                    return true;
-                }
-                var raw = s.plugins;
-                var names = [];
-                if (typeof raw == "string") {
-                    names = raw.split(",");
-                } else if (raw && typeof raw == "object" && typeof raw.length == "number") {
-                    names = raw;
-                }
-                for (var i = 0; i < names.length; i++) {
-                    var name = String(names[i] == null ? "" : names[i])
-                        .replace(/^\s+|\s+$/g, "")
-                        .replace(/\.js$/i, "");
-                    if (name === "ad") {
-                        return true;
-                    }
-                }
-                return false;
-            },
-            /**
              * 认领通道(不含 UI): 请求 channelMember 接口, 成功后启动弹幕 / 打开对话框
              * @param {String} channelCodes 通道码
              * @param {jQuery} input 面板里的 .channel-input(无面板时传空集)
@@ -826,21 +799,19 @@ try {
                         }
                         // danMuPop 在本函数末尾的 channelMemberSuccess 之前执行, 此处先缓存 wsUrl
                         _this.saveWsUrl(resp);
-                        if (_this.needDanMuStream()) {
-                            var danMuInit = s.danMuInitCallback(s);
-                            // 弹幕开关打开时才建弹幕悬浮图标与 AI 轮询;
-                            // danMu=0 只是收消息(如广告位)时不建这些 UI
-                            if (s.danMu == 1) {
-                                _this.initDanMuIcon();
-                                _this.initAiDanMu(anchor);
-                            }
-                            _this.danMuDoc = anchor.ownerDocument || anchor;
-                            if (resp.data.pushType == 1) {
-                                _this.danMuSocketToken = resp.data.token;
-                                // danMuInitCallback 返回 false 时不创建 socket 连接
-                                if (danMuInit) {
-                                    _this.danMuPop({ token: resp.data.token });
-                                }
+                        var danMuInit = s.danMuInitCallback(s);
+                        // 弹幕开关打开时才建弹幕悬浮图标与 AI 轮询;
+                        // danMu=0 只是收消息(如广告位)时不建这些 UI
+                        if (s.danMu == 1) {
+                            _this.initDanMuIcon();
+                            _this.initAiDanMu(anchor);
+                        }
+                        _this.danMuDoc = anchor.ownerDocument || anchor;
+                        if (resp.data.pushType == 1) {
+                            _this.danMuSocketToken = resp.data.token;
+                            // danMuInitCallback 返回 false 时不创建 socket 连接
+                            if (danMuInit) {
+                                _this.danMuPop({ token: resp.data.token });
                             }
                         }
                         _this.channelMemberSuccess(resp, input, group, channelCodes, expandDepth);
@@ -988,45 +959,88 @@ try {
                 var urls = [];
                 var pending = [];
                 for (var i = 0; i < names.length; i++) {
-                    // 去两侧空白, 兼容误写成文件名的情况(stat.js => stat);
-                    // 只接受字母/数字/下划线/中划线, 防止拼出非法或有穿越风险的路径
-                    var name = String(names[i] == null ? "" : names[i])
-                        .replace(/^\s+|\s+$/g, "")
-                        .replace(/\.js$/i, "");
-                    if (!name || !/^[a-zA-Z0-9_-]+$/.test(name)) {
+                    // 三种写法: ① 纯名字 stat/stat.js -> pluginsSite/stat.js
+                    //           ② http://host/x.js 完整URL -> 直接加载, 注册名取文件名 x
+                    //           ③ https://host/x.js 同上
+                    // 外部任意来源的 js 按约定 registerPlugin(文件名去.js, run) 即可自动执行。
+                    var item = String(names[i] == null ? "" : names[i]).replace(/^\s+|\s+$/g, "");
+                    if (!item) {
                         continue;
+                    }
+                    var name, url;
+                    if (/^https?:\/\//i.test(item)) {
+                        // 完整 URL: 注册名取路径末段去 .js; 无有效文件名时用 url_+序号 兜底
+                        url = item;
+                        var pathOnly = item.split("?")[0].split("#")[0];
+                        var seg = pathOnly.substring(pathOnly.lastIndexOf("/") + 1).replace(/\.js$/i, "");
+                        name = seg || ("url_" + i);
+                    } else {
+                        // 纯名字: 兼容误写成文件名的情况(stat.js => stat);
+                        // 只接受字母/数字/下划线/中划线, 防止拼出非法或有穿越风险的路径
+                        name = item.replace(/\.js$/i, "");
+                        if (!name || !/^[a-zA-Z0-9_-]+$/.test(name)) {
+                            continue;
+                        }
+                        url = base + name + ".js";
                     }
                     if (_this.loadedPlugins[name]) {
                         continue;
                     }
                     _this.loadedPlugins[name] = true;
-                    urls.push(base + name + ".js");
+                    urls.push(url);
                     pending.push(name);
                 }
                 if (!urls.length) {
                     return;
                 }
+                // ===== 插件加载日志规范（统一前缀 [网页插件]，便于 console 过滤排查）=====
+                // 格式:
+                //   [网页插件] ┌─ 开始加载 N 个: a, b, c
+                //   [网页插件] │  ✓ a  已就绪 (12ms)          —— 脚本加载 + registerPlugin + run() 全部成功
+                //   [网页插件] │  ✗ b  脚本已加载但未注册      —— onload 成功但没有 registerPlugin
+                //   [网页插件] │  ✗ c  run() 异常: <msg>      —— run(settings) 抛错
+                //   [网页插件] └─ 加载完成: 2 成功 / 1 失败 | 耗时 45ms
+                // 兼容 ES5 / 无 console 环境: 所有输出都先判空。
+                var LOG = "[网页插件]";
+                var log = function (msg) {
+                    if (typeof console != "undefined" && console.log) {
+                        console.log(LOG + " " + msg);
+                    }
+                };
+                var startTime = (typeof Date != "undefined" && Date.now) ? Date.now() : 0;
+                var okCount = 0;
+                var failCount = 0;
+                log("┌─ 开始加载 " + pending.length + " 个: " + pending.join(", "));
                 // 标记插件未就绪: init 的建 UI 阶段要等插件(尤其 panel 面板)注册完再执行,
                 // 否则 plugins=panel 时 initPusherWindow 读到的 this.panel 还是 null, 面板不会弹出
                 _this.pluginsLoading++;
                 _this.parallelLoadScripts(urls, function () {
                     for (var j = 0; j < pending.length; j++) {
-                        var run = _this.pluginsRegistry[pending[j]];
+                        var pname = pending[j];
+                        var t0 = (typeof Date != "undefined" && Date.now) ? Date.now() : 0;
+                        var run = _this.pluginsRegistry[pname];
                         if (typeof run != "function") {
-                            if (typeof console != "undefined" && console.log) {
-                                console.log("插件未注册: " + pending[j]);
-                            }
+                            failCount++;
+                            log("│  ✗ " + pname + "  脚本已加载但未注册 (未调用 registerPlugin)");
                             continue;
                         }
                         // 插件异常不影响组件主流程
                         try {
                             run(s);
+                            okCount++;
+                            var cost = t0 ? (Date.now() - t0) : 0;
+                            log("│  ✓ " + pname + "  已就绪 (" + cost + "ms)");
                         } catch (e) {
+                            failCount++;
+                            var emsg = (e && e.message) ? e.message : String(e);
+                            log("│  ✗ " + pname + "  run() 异常: " + emsg);
                             if (typeof console != "undefined" && console.log) {
                                 console.log(e);
                             }
                         }
                     }
+                    var total = startTime ? (Date.now() - startTime) : 0;
+                    log("└─ 加载完成: " + okCount + " 成功 / " + failCount + " 失败 | 耗时 " + total + "ms");
                     _this.pluginsLoading--;
                     _this.flushPluginsCallbacks();
                 });
@@ -1108,6 +1122,40 @@ try {
                 }
             },
             /* ===== 弹幕核心：Socket.IO 单例连接 / 消息分发 ===== */
+            /**
+             * 消息流模式: 插件名以 msg 开头(不区分大小写) → 需要 body, 监听 new_msg;
+             * 其余插件 → 只要头像 + head, 监听 new_dm, 不订阅 new_msg 以省流量。
+             * URL 插件与 loadPlugins 取名规则一致: 取 URL 末段文件名去 .js 后再判断。
+             */
+            resolveStreamMode: function () {
+                var raw = this.settings.plugins;
+                var names = [];
+                if (typeof raw == "string") {
+                    names = raw.split(",");
+                } else if (raw && typeof raw.length == "number") {
+                    names = raw;
+                }
+                for (var i = 0; i < names.length; i++) {
+                    var name = String(names[i] == null ? "" : names[i])
+                        .replace(/^\s+|\s+$/g, "");
+                    if (!name) {
+                        continue;
+                    }
+                    if (/^https?:\/\//i.test(name)) {
+                        // https://xx/msg-foo.js → msg-foo → 命中 msg 前缀
+                        name = name.split("?")[0].split("#")[0];
+                        name = name
+                            .substring(name.lastIndexOf("/") + 1)
+                            .replace(/\.js$/i, "");
+                    } else {
+                        name = name.replace(/\.js$/i, "");
+                    }
+                    if (/^msg/i.test(name)) {
+                        return "msg";
+                    }
+                }
+                return "dm";
+            },
             danMuPop: function (params) {
                 var _this = this;
                 var sock = _this.danMuSocket;
@@ -1126,24 +1174,21 @@ try {
                 }
                 var so = io(
                     _this.settings.wsUrl ||
-                        _this.channelWsUrl ||
-                        "https://2120ws.phprm.com",
+                    _this.channelWsUrl ||
+                    "https://2120ws.phprm.com",
                 );
                 _this.danMuSocket = so;
                 _this.danMuSocketToken = params.token;
+                // 只需在前端决定监听哪个事件: 没人监听的事件不会产生实际传输, 服务端保持双发不动
+                var streamMode = _this.resolveStreamMode();
                 // 读取弹幕配置并缓存（避免每条消息重复读取解析）
                 var cfg = _this.getDanMuConfig();
                 _this.updateCfgCache(cfg);
                 so.on("connect", function () {
                     so.emit("danMuLogin", params.token);
                 });
-                so.on("new_dm", function (msg) {
-                    if ("undefined" != typeof console) {
-                        console.log("收到弹幕消息：" + msg);
-                    }
-                    if (msg == null || msg.indexOf("{") != 0) {
-                        return;
-                    }
+                // 弹幕渲染: new_dm / new_msg 两条路径共用同一段逻辑
+                function renderDanMu(message) {
                     var cache = _this.cfgCache || {
                         cfg: {},
                         bottomradio: 0,
@@ -1152,41 +1197,96 @@ try {
                     var cfg = cache.cfg;
                     var bottomradio = cache.bottomradio;
                     var textLen = cache.textLen;
-                    try {
-                        var message = JSON.parse(msg);
-                        // 原始消息闸门: 插件/宿主可自行处理某类消息(如 head=广告 走广告位),
-                        // 返回 true 表示已处理, 组件不再把这条消息渲染成弹幕
-                        var msgHook = _this.settings.danMuMessageCallback;
-                        if (typeof msgHook == "function") {
-                            var handled = false;
-                            try {
-                                handled = msgHook.call(_this.settings, message);
-                            } catch (e) {
-                                console && console.log("danMuMessageCallback 执行异常: " + e);
-                            }
-                            if (handled === true) {
-                                return;
-                            }
+                    // 原始消息闸门: 插件/宿主可自行处理某类消息(如 head=广告 走广告位),
+                    // 返回 true 表示已处理, 组件不再把这条消息渲染成弹幕
+                    var msgHook = _this.settings.danMuMessageCallback;
+                    if (typeof msgHook == "function") {
+                        var handled = false;
+                        try {
+                            handled = msgHook.call(_this.settings, message);
+                        } catch (e) {
+                            console && console.log("danMuMessageCallback 执行异常: " + e);
                         }
-                        // danMu=0(只收消息, 如广告位): 未处理的普通消息不渲染弹幕
-                        if (_this.settings.danMu != 1) {
+                        if (handled === true) {
                             return;
                         }
-                        var title = _this.cutText(message.head, Math.ceil(textLen));
-                        _this.buildBarragerItem(
-                            message.messageId
-                                ? message.messageId
-                                : message.messagePushId,
-                            message.avatar,
-                            title,
-                            message.url,
-                            cfg,
-                            bottomradio
-                        );
-                    } catch (e) {
-                        console && console.log("弹幕消息解析失败: " + e);
                     }
-                });
+                    // danMu=0(只收消息, 如广告位): 未处理的普通消息不渲染弹幕
+                    if (_this.settings.danMu != 1) {
+                        return;
+                    }
+                    var title = _this.cutText(message.head, Math.ceil(textLen));
+                    _this.buildBarragerItem(
+                        message.messageId
+                            ? message.messageId
+                            : message.messagePushId,
+                        message.avatar,
+                        title,
+                        message.url,
+                        cfg,
+                        bottomradio
+                    );
+                }
+                // 完整消息分发: settings.newMsgCallback + document 的 pushNewMsg 事件
+                // 任意外部 js 只需 window.addEventListener("pushNewMsg", e => ...) 即可收到
+                function dispatchNewMsg(message) {
+                    var hook = _this.settings.newMsgCallback;
+                    if (typeof hook == "function") {
+                        try {
+                            hook.call(_this.settings, message);
+                        } catch (e) {
+                            console && console.log("newMsgCallback 执行异常: " + e);
+                        }
+                    }
+                    try {
+                        var evt;
+                        if (typeof CustomEvent == "function") {
+                            evt = new CustomEvent("pushNewMsg", { detail: message });
+                        } else {
+                            evt = document.createEvent("CustomEvent");
+                            evt.initCustomEvent("pushNewMsg", false, false, message);
+                        }
+                        document.dispatchEvent(evt);
+                    } catch (e) {
+                        console && console.log("pushNewMsg 事件派发失败: " + e);
+                    }
+                }
+                if (streamMode != "msg") {
+                    so.on("new_dm", function (msg) {
+                        if ("undefined" != typeof console) {
+                            console.log("收到弹幕消息：" + msg);
+                        }
+                        if (msg == null || msg.indexOf("{") != 0) {
+                            return;
+                        }
+                        try {
+                            renderDanMu(JSON.parse(msg));
+                        } catch (e) {
+                            console && console.log("弹幕消息解析失败: " + e);
+                        }
+                    });
+                }
+                if (streamMode != "dm") {
+                    so.on("new_msg", function (msg) {
+                        if (msg == null || typeof msg != "string" || msg.indexOf("{") != 0) {
+                            return;
+                        }
+                        var message;
+                        try {
+                            message = JSON.parse(msg);
+                        } catch (e) {
+                            console && console.log("new_msg 解析失败: " + e);
+                            return;
+                        }
+                        dispatchNewMsg(message);
+                        // msg 模式下不再订阅 new_dm, 弹幕直接从完整消息渲染
+                        try {
+                            renderDanMu(message);
+                        } catch (e) {
+                            console && console.log("弹幕消息渲染失败: " + e);
+                        }
+                    });
+                }
             },
             buildBarragerItem: function (id, img, info, href, cfg, bottomradio) {
                 var s = this.settings;
@@ -1349,48 +1449,48 @@ try {
             getPusherPcUrl: function (c) {
                 return WebsitePusher.appendWsUrlParam(
                     c.url +
-                        "?group=" +
-                        c.group +
-                        "&token=" +
-                        c.token +
-                        "&createTime=" +
-                        c.createTime +
-                        "&channelCode=" +
-                        c.channelCode +
-                        "&shareFlag=" +
-                        c.shareFlag +
-                        "&channelName=" +
-                        c.channelName +
-                        "&uid=" +
-                        c.uid +
-                        "&name=" +
-                        c.name +
-                        "&avatar=" +
-                        encodeURIComponent(c.avatar),
+                    "?group=" +
+                    c.group +
+                    "&token=" +
+                    c.token +
+                    "&createTime=" +
+                    c.createTime +
+                    "&channelCode=" +
+                    c.channelCode +
+                    "&shareFlag=" +
+                    c.shareFlag +
+                    "&channelName=" +
+                    c.channelName +
+                    "&uid=" +
+                    c.uid +
+                    "&name=" +
+                    c.name +
+                    "&avatar=" +
+                    encodeURIComponent(c.avatar),
                     c,
                 );
             },
             getPusherMobileUrl: function (c) {
                 return WebsitePusher.appendWsUrlParam(
                     c.url.replace("pc", "mobile") +
-                        "?group=" +
-                        c.group +
-                        "&token=" +
-                        c.token +
-                        "&createTime=" +
-                        c.createTime +
-                        "&channelCode=" +
-                        c.channelCode +
-                        "&shareFlag=" +
-                        c.shareFlag +
-                        "&channelName=" +
-                        c.channelName +
-                        "&uid=" +
-                        c.uid +
-                        "&name=" +
-                        c.name +
-                        "&avatar=" +
-                        encodeURIComponent(c.avatar),
+                    "?group=" +
+                    c.group +
+                    "&token=" +
+                    c.token +
+                    "&createTime=" +
+                    c.createTime +
+                    "&channelCode=" +
+                    c.channelCode +
+                    "&shareFlag=" +
+                    c.shareFlag +
+                    "&channelName=" +
+                    c.channelName +
+                    "&uid=" +
+                    c.uid +
+                    "&name=" +
+                    c.name +
+                    "&avatar=" +
+                    encodeURIComponent(c.avatar),
                     c,
                 );
             },
@@ -2095,7 +2195,7 @@ try {
                 _this.settings.danMuQueue = null;
                 _this.settings.danMuSendOpened = false;
                 _this.settings.danMuSetting.selector = "body";
-                // 5) 清理左下角控制面板（plugins/control.js，兼容旧 danmu-float.js）创建的浮窗
+                // 5) 清理 danmu-float.js 创建的浮窗
                 var dmFloatWrap = document.querySelector(".dm-float-wrap");
                 if (dmFloatWrap) {
                     dmFloatWrap.remove();

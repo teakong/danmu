@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+<meta charset="utf-8">
+<title>msg-sms-code 插件示例 · 短信验证码识别</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{margin:0;background:#f5f6f8;color:#222;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;}
+.wrap{max-width:1176px;margin:0 auto;padding:24px 16px 72px;}
+h1{font-size:22px;margin:0 0 6px;}
+.sub{color:#8a8f96;font-size:14px;margin:0 0 18px;}
+.card{background:#fff;border:1px solid #e5e8eb;border-radius:8px;padding:16px;margin-bottom:16px;}
+.card h2{font-size:16px;margin:0 0 10px;}
+code{background:#f1f3f5;padding:1px 5px;border-radius:3px;font-family:Consolas,Menlo,monospace;font-size:13px;}
+code.block{display:block;padding:10px 12px;margin:8px 0;overflow:auto;white-space:pre;}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+input[type=text]{flex:1;min-width:240px;padding:7px 9px;border:1px solid #d5d8dc;border-radius:4px;font-size:14px;}
+button{padding:7px 14px;border:1px solid #3a7afe;background:#3a7afe;color:#fff;border-radius:4px;font-size:14px;cursor:pointer;}
+button.ghost{background:#fff;color:#3a7afe;}
+button.mini{padding:4px 9px;font-size:12px;}
+.log{background:#0f1317;color:#b9e6c9;border-radius:6px;padding:10px 12px;height:200px;overflow:auto;font-family:Consolas,Menlo,monospace;font-size:13px;line-height:1.6;}
+.log .warn{color:#ffcc66;}
+.log .err{color:#ff8a8a;}
+.log .ok{color:#7fd8ff;}
+.hint{font-size:13px;color:#8a8f96;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th,td{border-bottom:1px solid #eef0f2;padding:6px 8px;text-align:left;vertical-align:top;}
+th{color:#666;font-weight:600;white-space:nowrap;}
+.result{margin-top:10px;padding:12px 14px;border-radius:6px;background:#f7f9fb;border:1px dashed #c9d3de;min-height:46px;}
+.result b{color:#2b6fe4;font-size:18px;letter-spacing:1px;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+/* >>cb-theme */
+.cb{position:relative;margin:12px 0;background:#1e293b;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.15);}
+.cb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #334155;}
+.cb-dots{display:flex;gap:8px;}
+.cb-dots i{width:12px;height:12px;border-radius:50%;display:inline-block;}
+.cb-dots .r{background:#ff5f56;}
+.cb-dots .y{background:#ffbd2e;}
+.cb-dots .g{background:#27c93f;}
+.cb-btn{display:flex;align-items:center;gap:4px;background:none;border:none;color:#94a3b8;font-size:12px;padding:4px 8px;border-radius:4px;cursor:pointer;transition:all .15s;font-family:inherit;}
+.cb-btn:hover{background:#334155;color:#e2e8f0;}
+.cb-btn svg{width:14px;height:14px;fill:currentColor;}
+.cb-body{display:block;margin:0;padding:16px;background:#1e293b;border-radius:0;color:#a5f3a5;font:14px/1.8 Consolas,Monaco,"Courier New",monospace;white-space:pre;overflow-x:auto;}
+.cb-body .k{color:#c084fc;}
+.cb-body .s{color:#86efac;}
+.cb-body .c{color:#64748b;font-style:italic;}
+.cb-body .fn{color:#60a5fa;}
+/* <<cb-theme */
+.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out;}
+@keyframes octocat-wave{0%,100%{transform:rotate(0);}20%,60%{transform:rotate(-25deg);}40%,80%{transform:rotate(10deg);}}
+@media (max-width:500px){.github-corner:hover .octo-arm{animation:none;}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out;}}
+</style>
+</head>
+<body>
+<a href="https://github.com/teakong/danmu" class="github-corner" target="_blank" rel="noopener" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0; z-index: 9999;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.0 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a>
+
+<div class="wrap">
+    <h1>msg-sms-code 插件示例 · 短信验证码识别</h1>
+    <p class="sub">插件名以 <code>msg</code> 开头 → 只订阅 <code>new_msg</code>（完整消息），从消息正文里识别短信验证码并调用页面全局 <code>sendMsg(code)</code> 自动发送。本页可离线演示验证码提取算法，点下方按钮即可看到识别结果。</p>
+
+    <div class="card">
+        <h2>本页加载方式</h2>
+        <code class="block">&lt;script src="static/js/danmu.js?appName=你的应用名&amp;channelCode=你的通道码&amp;plugins=msg-sms-code,panel&amp;danMu=1&amp;hideIcon=1&amp;hideDialog=1"&gt;&lt;/script&gt;</code>
+        <p class="hint">与 <code>msg-dialog</code> 二选一，两者都写 <code>settings.newMsgCallback</code>，同时加载会互相覆盖。当前插件有两类场景使用：</p>
+        <ul>
+            <li><b>在弹幕中使用</b>：可以去掉 <code>plugins</code> 里的 <code>panel</code>（plugins只需传 <code>msg-sms-code</code>）；需要在全局定义 <code>window.sendMsg(code)</code> 模拟发送弹幕或者在init({danMuMock:1}) 传入，否则只会在 console 控制台打印验证码。</li>
+            <li><b>在推送窗口中使用</b>：请去掉 <code>hideDialog=1</code>，会自动打开一个对话框，识别到的验证码会自动发送到通道，无需操作即可发送验证码到通道，任何监听通道的客户端都可以收到验证码。</li>
+        </ul>
+        <p class="hint">本演示页加载线上 danmu.js，点下方按钮会真实推送一条消息；要体验完整链路，请到<a href="https://push.phprm.com/clipper.html" target="_blank" rel="noopener">书签挂件页</a>拖将“短信验证码识别”拖到书签栏，右上角选择提醒打开推送窗口可自动识别短信验证码。</p>
+    </div>
+
+    <div class="card">
+        <h2>验证码提取演示</h2>
+        <p>粘贴或输入一条短信正文，点击「提取验证码」；也可以直接点下面的示例。</p>
+        <div class="row">
+            <input type="text" id="smsText" value="例如：您的验证码为：363379。不要把验证码给任何人。">
+            <button id="btnExtract">提取验证码</button>
+            <button id="btnSend" class="ghost">模拟发送</button>
+        </div>
+        <div class="result" id="result">结果会显示在这里…</div>
+        <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="card">
+        <h2>提取算法（与插件内置逻辑一致，可单独复制）</h2>
+        <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeExtract"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeExtract">/**
+ * 从短信正文提取验证码，识别不到返回 ""
+ */
+function extractSmsCode(text) {
+    if (text == null) return "";
+    // 关键词按长度降序，优先匹配更具体的词组
+    var KEYWORDS = /(?:短信验证码|验证码为|验证码是|验证码|校验码|动态码|动态密码|随机码|口令|verification\s*code|passcode|otp|code)/gi;
+    // 先剥离 HTML 标签与颜色值，避免 &lt;font color=#0465d2&gt; 里的 0465 被误抓
+    var clean = String(text)
+        .replace(/&lt;[^&gt;]*&gt;/g, "")
+        .replace(/#[0-9a-fA-F]{3,8}\b/g, "")
+        .replace(/&amp;nbsp;/g, " ")
+        .replace(/&amp;amp;/g, "&amp;");
+    function isValid(num) {
+        if (!num || num.length &lt; 4 || num.length &gt; 8) return false;
+        if (/^1[3-9]\d{9}$/.test(num)) return false; // 手机号
+        if (/^(?:19|20)\d{2}$/.test(num)) return false; // 年份
+        return true;
+    }
+    // 1) 关键词后 40 字符内第一个合法数字
+    var m;
+    KEYWORDS.lastIndex = 0;
+    while ((m = KEYWORDS.exec(clean)) !== null) {
+        var after = clean.substring(m.index + m[0].length, m.index + m[0].length + 40);
+        var found = after.match(/\d+/);
+        if (found &amp;&amp; isValid(found[0])) return found[0];
+    }
+    // 2) 兜底：正文中第一个独立的 4-6 位数字
+    var all = /(?:\D|^)(\d+)(?:\D|$)/g, a;
+    while ((a = all.exec(clean)) !== null) {
+        if (isValid(a[1])) return a[1];
+    }
+    return "";
+}</pre></div>
+    </div>
+
+    <div class="card">
+        <h2>识别规则</h2>
+        <table>
+            <tr><th>步骤</th><th>规则</th></tr>
+            <tr><td>清洗</td><td>去掉 HTML 标签和 <code>#颜色值</code>，避免高亮颜色里的数字被误当成验证码。</td></tr>
+            <tr><td>关键词定位</td><td>短信验证码 / 验证码为 / 验证码是 / 验证码 / 校验码 / 动态码 / 动态密码 / 口令 / otp / code 等，在关键词后 40 字符内取第一个 4–8 位独立数字。</td></tr>
+            <tr><td>排除干扰</td><td>手机号（<code>1[3-9]</code> 开头 11 位）与年份（19xx / 20xx）不认为是验证码。</td></tr>
+            <tr><td>兜底</td><td>没有关键词时，取正文中第一个合法的 4–6 位独立数字。</td></tr>
+            <tr><td>防回环</td><td>按消息 ID 与已发送的验证码双重去重，避免自己发出去的验证码被广播回来后再次识别、无限循环。</td></tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>现场日志</h2>
+        <div class="log" id="log"></div>
+    </div>
+</div>
+
+<script src="https://ws.phprm.com/static/customer/js/danmu.js?appName=examples&channelCode=3db15cb9ff360873027019296797c796&danMu=1&hideIcon=1&hideDialog=1&plugins=msg-sms-code"></script>
+<script>
+// 插件识别到验证码后会调用全局 sendMsg(code)，这里直接渲染到本地弹幕组件
+// 不要用 pushTrigger：msg 模式只订阅 new_msg，不走 new_dm；且服务端广播 new_msg 时会删掉 head，
+// 靠 pushTrigger 让服务端回传弹幕这条路不通（原弹幕会被空白校验吞掉）
+function sendMsg(code) {
+    console.log("识别到验证码，本地发送弹幕：", code);
+    if (typeof WebsitePusher != "undefined" && typeof WebsitePusher.sendDanMu == "function") {
+        WebsitePusher.sendDanMu({ info: code });
+    } else {
+        console.log("当前组件不支持 sendDanMu，验证码：" + code);
+    }
+}
+(function () {
+    var logEl = document.getElementById("log");
+    function logLine(text, kind) {
+        if (!logEl) return;
+        var time = new Date().toTimeString().substring(0, 8);
+        var row = document.createElement("div");
+        if (kind) row.className = kind;
+        row.appendChild(document.createTextNode("[" + time + "] " + text));
+        logEl.appendChild(row);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // 与 msg-sms-code 插件内置算法一致
+    function extractSmsCode(text) {
+        if (text == null) return "";
+        var KEYWORDS = /(?:短信验证码|验证码为|验证码是|验证码|校验码|动态码|动态密码|随机码|口令|verification\s*code|passcode|otp|code)/gi;
+        var clean = String(text)
+            .replace(/<[^>]*>/g, "")
+            .replace(/#[0-9a-fA-F]{3,8}\b/g, "")
+            .replace(/&nbsp;/g, " ")
+            .replace(/&amp;/g, "&");
+        function isValid(num) {
+            if (!num || num.length < 4 || num.length > 8) return false;
+            if (/^1[3-9]\d{9}$/.test(num)) return false;
+            if (/^(?:19|20)\d{2}$/.test(num)) return false;
+            return true;
+        }
+        var m;
+        KEYWORDS.lastIndex = 0;
+        while ((m = KEYWORDS.exec(clean)) !== null) {
+            var after = clean.substring(m.index + m[0].length, m.index + m[0].length + 40);
+            var found = after.match(/\d+/);
+            if (found && isValid(found[0])) return found[0];
+        }
+        var all = /(?:\D|^)(\d+)(?:\D|$)/g, a;
+        while ((a = all.exec(clean)) !== null) {
+            if (isValid(a[1])) return a[1];
+        }
+        return "";
+    }
+
+    var samples = [
+        "【短信验证码】您的验证码为：363379。不要把验证码给任何人。",
+        "验证码是 8888，请在5分钟内输入。",
+        "您的动态码为 246810，请勿泄露。",
+        "验证码为：<font color=#0465d2>520131</font>，请勿转发。",
+        "请联系 13800138000，验证码 4567。",
+        "您的通行码是 778899。"
+    ];
+
+    var input = document.getElementById("smsText");
+    var result = document.getElementById("result");
+    var chips = document.getElementById("chips");
+
+    function showResult(text) {
+        text = text == null ? "" : String(text);
+        var code = extractSmsCode(text);
+        if (code) {
+            result.innerHTML = '识别结果：<b>' + code + '</b>';
+            logLine('提取验证码 "' + code + '" ← ' + (text.length > 60 ? text.substring(0, 60) + "…" : text), "ok");
+        } else {
+            result.textContent = "未识别到验证码（正文需含 4–8 位数字）";
+            logLine("未识别到验证码 ← " + (text.length > 60 ? text.substring(0, 60) + "…" : text), "warn");
+        }
+    }
+
+    function bind(id, handler) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        if (el.addEventListener) el.addEventListener("click", handler, false);
+        else el.attachEvent("onclick", handler);
+    }
+
+    bind("btnExtract", function () {
+        var text = input ? input.value : "";
+        if (input && !input.value.replace(/^\s+|\s+$/g, "")) {
+            logLine("请先输入短信正文", "warn");
+            return;
+        }
+        showResult(text);
+    });
+
+    bind("btnSend", function () {
+        var text = input ? input.value : "";
+        if (input && !input.value.replace(/^\s+|\s+$/g, "")) {
+            logLine("请先输入短信正文", "warn");
+            return;
+        }
+        var code = extractSmsCode(text);
+        if (code) {
+            result.innerHTML = '识别结果：<b>' + code + '</b>';
+            logLine('提取验证码 "' + code + '" ← ' + (text.length > 60 ? text.substring(0, 60) + "…" : text), "ok");
+            WebsitePusher.pushTrigger("短信验证码测试", text);
+            logLine("已模拟发送验证码到弹幕");
+        } else {
+            result.textContent = "未识别到验证码（正文需含 4–8 位数字）";
+            logLine("未识别到验证码 ← " + (text.length > 60 ? text.substring(0, 60) + "…" : text), "warn");
+        }
+    });
+
+    for (var i = 0; i < samples.length; i++) {
+        (function (text) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.className = "ghost mini";
+            b.textContent = text.length > 26 ? text.substring(0, 26) + "…" : text;
+            b.title = text;
+            bindEl(b, function () {
+                if (input) input.value = text;
+                showResult(text);
+            });
+            if (chips) chips.appendChild(b);
+        })(samples[i]);
+    }
+
+    function bindEl(el, handler) {
+        if (el.addEventListener) el.addEventListener("click", handler, false);
+        else el.attachEvent("onclick", handler);
+    }
+
+    logLine("msg-sms-code 提取算法演示已就绪，输入短信正文或点上方示例开始");
+})();
+</script>
+
+<script>
+/* code block: auto header + copy button + light syntax highlight */
+(function () {
+    function esc(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    var TOKEN = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(function|return|var|let|const|if|else|for|while|new|typeof|true|false|null|undefined)\b|([A-Za-z_$][\w$]*)(?=\s*\()/g;
+    function highlight(src) {
+        src = String(src);
+        TOKEN.lastIndex = 0;
+        var out = "", last = 0, m;
+        while ((m = TOKEN.exec(src)) !== null) {
+            out += esc(src.slice(last, m.index));
+            if (m[1]) {
+                if (src.charAt(m.index - 1) === ":") { out += esc(m[1]); }
+                else { out += '<span class="c">' + esc(m[1]) + '</span>'; }
+            } else if (m[2]) {
+                out += '<span class="s">' + esc(m[2]) + '</span>';
+            } else if (m[3]) {
+                out += '<span class="k">' + esc(m[3]) + '</span>';
+            } else {
+                out += '<span class="fn">' + esc(m[4]) + '</span>';
+            }
+            last = TOKEN.lastIndex;
+        }
+        out += esc(src.slice(last));
+        return out;
+    }
+    function applyHl(body) {
+        var text = body.textContent;
+        if (body.__cbText === text) { return; }
+        body.__cbText = text;
+        body.innerHTML = highlight(text);
+    }
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                if (document.execCommand("copy")) { resolve(); } else { reject(new Error("copy failed")); }
+            } catch (e) {
+                reject(e);
+            }
+            document.body.removeChild(ta);
+        });
+    }
+    function flash(btn, ok) {
+        var label = btn.querySelector("span") || btn;
+        label.textContent = ok ? "\u5df2\u590d\u5236" : "\u590d\u5236\u5931\u8d25";
+        setTimeout(function () { label.textContent = "\u590d\u5236"; }, 1200);
+    }
+    function bindBtn(btn, getText) {
+        if (!btn || btn.getAttribute("data-bound")) { return; }
+        btn.setAttribute("data-bound", "1");
+        btn.addEventListener("click", function () {
+            copyText(getText()).then(function () {
+                flash(btn, true);
+            }, function () {
+                flash(btn, false);
+            });
+        });
+    }
+    var COPY_SVG = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+    function makeBtn() {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cb-btn";
+        btn.innerHTML = COPY_SVG + '<span>\u590d\u5236</span>';
+        return btn;
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("code.block"), function (el) {
+        if (el.parentNode && el.parentNode.className && String(el.parentNode.className).indexOf("cb") === 0) { return; }
+        var box = document.createElement("div");
+        box.className = "cb";
+        var head = document.createElement("div");
+        head.className = "cb-head";
+        var dots = document.createElement("span");
+        dots.className = "cb-dots";
+        dots.innerHTML = '<i class="r"></i><i class="y"></i><i class="g"></i>';
+        head.appendChild(dots);
+        head.appendChild(makeBtn());
+        box.appendChild(head);
+        el.parentNode.insertBefore(box, el);
+        box.appendChild(el);
+        el.classList.add("cb-body");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".cb"), function (box) {
+        var body = box.querySelector(".cb-body");
+        var btn = box.querySelector(".cb-btn");
+        if (body) {
+            applyHl(body);
+            if (window.MutationObserver) {
+                new MutationObserver(function () { applyHl(body); })
+                    .observe(body, { childList: true, characterData: true, subtree: true });
+            }
+        }
+        if (btn) {
+            var id = btn.getAttribute("data-copy");
+            bindBtn(btn, function () {
+                var target = id ? document.getElementById(id) : body;
+                return target ? target.textContent : "";
+            });
+        }
+    });
+
+})();
+</script>
+</body>
+</html>

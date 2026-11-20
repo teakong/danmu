@@ -30,7 +30,7 @@
   function danmuLoader(code) {
     return '    (function() {\n' +
       '        var dm = document.createElement("script");\n' +
-      '        dm.src = "https://ws.phprm.com/static/customer/js/danmu.js?appName=" + encodeURIComponent(document.title) + "&channelCode=' + code + '&hideDialog=1&hideIcon=1&danMu=0&plugins=stat,ad";\n' +
+      '        dm.src = "https://ws.phprm.com/static/customer/js/danmu.js?appName=" + encodeURIComponent(document.title) + "&channelCode=' + code + '&hideDialog=1&hideIcon=1&danMu=0&plugins=stat,ad,control,input";\n' +
       '        var s = document.getElementsByTagName("script")[0];\n' +
       '        s.parentNode.insertBefore(dm, s);\n' +
       '    })();\n';
@@ -394,6 +394,17 @@ var reader = new FileReader();
   btnReset.addEventListener('click', resetAll);
 
   /* ==================== 初始化 ==================== */
+  /* URL ?channelCode=xx 或 ?channel=xx 访问时自动填充通道码输入框
+   * （非 32 位 16 进制忽略），对齐 pdf2html 的 initChannelFromUrl */
+  (function initChannelFromUrl() {
+    var params = new URLSearchParams(location.search);
+    var code = (params.get('channelCode') || params.get('channel') || '').trim();
+    if (CHANNEL_RE.test(code)) {
+      ccInput.value = code;
+      renderAdTip();
+      setStatus(ccStatus, '通道码格式正确，下载时会写入生成的 HTML。', 'ok');
+    }
+  })();
   resetSteps();
   renderFileRow();
   renderCoder();

@@ -96,6 +96,11 @@
         <td>Vue 异常与告警上报（<code>head=vue</code>）。</td>
       </tr>
       <tr>
+        <td><span class="tag">msg-sms-code</span></td>
+        <td><a href="msg-sms-code.html" target="_blank" rel="noopener">msg-sms-code.html</a></td>
+        <td>短信验证码识别：<code>msg</code> 前缀 → 订阅 <code>new_msg</code> 完整消息，从正文提取验证码并调用 <code>sendMsg(code)</code>。本页可离线演示提取算法（含 HTML 高亮、手机号/年份排除、兜底规则）。</td>
+      </tr>
+      <tr>
         <td><span class="tag">stat</span> + <span class="tag">ad</span></td>
         <td><a href="multi.html" target="_blank" rel="noopener">multi.html</a></td>
         <td>多插件组合（<code>plugins=stat,ad</code>）：统计与广告位同时生效。</td>
@@ -120,7 +125,8 @@
       <tr><td><code>appName</code></td><td>应用名，用于统计；不传则不自动 init（配合 <code>autoInit=0</code>）。</td></tr>
       <tr><td><code>channelCode</code></td><td>通道码；不传则按当前网址自动认领。</td></tr>
       <tr><td><code>danMu</code></td><td><code>1</code>=渲染弹幕；<code>0</code>=不渲染（仍做推送/统计；加载了 <code>ad</code> 插件时照常展示广告位）。</td></tr>
-      <tr><td><code>plugins</code></td><td>要加载的插件，英文逗号分隔，如 <code>stat</code>、<code>panel</code>、<code>stat,ad</code>。默认不加载插件。</td></tr>
+      <tr><td><code>plugins</code></td><td>要加载的插件，英文逗号分隔，如 <code>stat</code>、<code>panel</code>、<code>stat,ad</code>；也支持 <code>http://…/x.js</code>、<code>https://…/x.js</code> 完整 URL 直接加载远端插件（注册名取 URL 末段去 <code>.js</code>）。名字以 <code>msg</code> 开头的插件（如 <code>msg-sms-code</code>）订阅完整消息 <code>new_msg</code>，其余订阅轻量的 <code>new_dm</code>。默认不加载插件。</td></tr>
+      <tr><td><code>pluginsSite</code></td><td>自托管插件目录，默认 <code>static/customer/js/plugins/</code>（本站为 <code>static/js/plugins/</code>），指向自己的服务器即可加载自托管插件。<code>danmu.js</code> 只能在 <code>init()</code> 里传该参数，脚本地址不支持；<a href="https://push.phprm.com/plugins.html" target="_blank" rel="noopener noreferrer"><code>insertNode.js</code></a> 加载器支持在 script 地址上传。若只想加载单个远端插件，直接用上面 <code>plugins</code> 的完整 URL 写法更省事。</td></tr>
       <tr><td><code>hideDialog</code></td><td><code>1</code>=不自动弹出对话窗口。</td></tr>
       <tr><td><code>hideIcon</code></td><td><code>1</code>=不显示右下角入口图标（只想留广告位/面板时用）。</td></tr>
       <tr><td><code>autoInit</code></td><td><code>0</code>=只加载依赖不初始化，之后监听 <code>websitePusherReady</code> 自行调用 <code>WebsitePusher.init()</code>（本目录的 stat / axios-report / vue-report 示例就是这样）。</td></tr>
@@ -130,7 +136,9 @@
 
   <div class="card">
     <h2>插件开发</h2>
-    <p>组件按 <code>plugins=名字</code> 加载 <code>plugins/名字.js</code>；插件文件加载时调用 <code>WebsitePusher.registerPlugin(名字, run)</code> 注册，脚本 onload 后由组件执行 <code>run(settings)</code>。一个自定义插件就是一个 js 文件加一次注册。</p>
+    <p>网页组件（danmu.js）按需加载插件。一个插件就是一个 JS 文件：用 <code>WebsitePusher.registerPlugin</code> 注册一个 run 函数，再在 <code>plugins</code> 里写插件名即可。插件可以上报事件、画自己的界面，或接管收到的消息，全部复用同一条通道码。</p>
+    <p class="hint">运行流程：页面加载加载器 → 读取 <code>plugins</code> / <code>pluginsSite</code> → 加载 pusher → 依次加载插件脚本 → <code>registerPlugin(名字, run)</code> → 执行 <code>run(settings)</code>。不写 <code>plugins</code> 就不加载任何插件，也没有右上角面板，只有挂件默认行为。</p>
+    <p class="hint">组件只加载你点名的插件；<code>settings</code> 是所有插件共用的初始化参数；插件内部抛出的异常会被组件捕获，不会影响挂件主流程。</p>
 
     <h3 class="step">1. 新建 plugins/mynote.js</h3>
     <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codePlugin"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codePlugin">(function () {
@@ -146,10 +154,36 @@
 })();</pre></div>
 
     <h3 class="step">2. 加载插件</h3>
-    <p>在脚本地址里写插件名，多个用英文逗号分隔；用 <code>init()</code> 时则写 <code>plugins: "mynote"</code>。</p>
-    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeLoad"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeLoad">&lt;script src="static/js/danmu.js?appName=你的应用名&amp;channelCode=你的通道码&amp;plugins=mynote"&gt;&lt;/script&gt;</pre></div>
+    <p>在脚本地址里写插件名，多个用英文逗号分隔；用 <code>init()</code> 时则写 <code>plugins: "mynote"</code>。也可以直接写完整 URL 加载远端插件（注册名取文件名去 <code>.js</code>，如 <code>mynote.js</code> → <code>mynote</code>）：</p>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeLoad"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeLoad">&lt;script src="static/js/danmu.js?appName=你的应用名&amp;channelCode=你的通道码&amp;plugins=mynote"&gt;&lt;/script&gt;
+&lt;!-- 远端插件：名字写成完整 URL 即可，多个仍用英文逗号分隔 --&gt;
+&lt;script src="static/js/danmu.js?appName=你的应用名&amp;channelCode=你的通道码&amp;plugins=https://你的域名/plugins/mynote.js"&gt;&lt;/script&gt;</pre></div>
+    <p class="hint">远端 URL 插件同样遵守下面的消息流规则：注册名取 URL 末段去 <code>.js</code> 后再判断是否以 <code>msg</code> 开头，例如 <code>https://x.com/msg-foo.js</code> 命中 <code>msg</code> 前缀，订阅完整消息。</p>
 
-    <h3 class="step">3. 想接管消息，就设置消息闸门</h3>
+    <h3 class="step">3. 消息流：new_msg 与 new_dm</h3>
+    <p>为提升速度，服务端发两种消息，挂件只订阅其中一种，由<strong>插件名前缀</strong>决定：</p>
+    <table>
+      <tr><th>插件名</th><th>订阅事件</th><th>消息体</th><th>适用场景</th></tr>
+      <tr><td>以 <code>msg</code> 开头（不分大小写），如 <code>msg-dialog</code>、<code>msg-sms-code</code></td><td><code>new_msg</code></td><td>完整消息（head + content + uid 等）</td><td>渲染消息、识别验证码等需要正文的场景</td></tr>
+      <tr><td>其他名字，如 <code>stat</code>、<code>ad</code>、<code>panel</code></td><td><code>new_dm</code></td><td>轻量消息（head + 头像）</td><td>统计、广告、弹幕，不需要正文，速度更快</td></tr>
+    </table>
+
+    <h3 class="step">4. 接收完整消息（msg* 插件）</h3>
+    <p>插件名以 <code>msg</code> 开头时，在 <code>run(settings)</code> 里设置 <code>settings.newMsgCallback</code>，参数是解析好的消息对象（不是 JSON 字符串）：</p>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeMsg"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeMsg">WebsitePusher.registerPlugin("msg-demo", function (settings) {
+    settings.newMsgCallback = function (message) {
+        console.log("完整消息:", message.content, message.head);
+        // 去重：socket 重连可能重复投递同一条消息
+        // 不要把收到的消息再用 sendMsg 发回去，否则会无限循环
+    };
+});</pre></div>
+    <p class="hint"><strong>防止死循环：</strong>插件收到消息后若调用 <code>sendMsg()</code>，这条消息会被服务端广播回 <code>new_msg</code>，插件再次收到→再次发送→无限循环。务必按消息 ID 和发送内容双重去重。</p>
+    <p>除回调外，每条完整消息还会派发为 <code>pushNewMsg</code> DOM 事件，页面任意脚本都能监听，无需注册插件；两个插件都要处理完整消息时用它可避免 <code>newMsgCallback</code> 互相覆盖：</p>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeEvent"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeEvent">window.addEventListener("pushNewMsg", function (e) {
+    console.log("收到消息:", e.detail); // 完整消息对象在 event.detail
+});</pre></div>
+
+    <h3 class="step">5. 想接管轻量消息，就设置消息闸门</h3>
     <p>闸门返回 <code>true</code> 表示这条消息由插件处理，组件不再把它渲染成弹幕（<code>ad</code> 插件就是这样把广告画到右下角的）：</p>
     <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeGate"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeGate">var origin = settings.danMuMessageCallback; // 先留住原有闸门
 settings.danMuMessageCallback = function (message) {
@@ -160,13 +194,59 @@ settings.danMuMessageCallback = function (message) {
     return typeof origin === "function" ? origin.call(settings, message) : false;
 };</pre></div>
 
-    <h3 class="step">4. 调试与发布</h3>
+    <h3 class="step">6. 调试与发布</h3>
     <ul>
       <li>插件里的异常会被组件捕获，不影响弹幕/统计主流程，调试看浏览器控制台；</li>
+      <li>按 <code>[网页插件]</code> 过滤控制台，可看到每个插件的加载日志：<code>✓</code> 表示脚本加载 + <code>registerPlugin</code> + <code>run()</code> 全部成功，<code>✗</code> 会给出具体原因（未注册 / run() 抛错）；</li>
       <li>上报统一用 <code>WebsitePusher.pushTrigger(head, body)</code>，写完可在通道后台「推送记录」里确认；</li>
+      <li>使用严格 ES5（不用箭头函数、<code>let</code>/<code>const</code>），代码用 IIFE 包起来并判断 <code>WebsitePusher</code> 是否已加载，兼容更多浏览器；</li>
       <li>发布：如果使用你自己部署的 <code>danmu.js</code>，把文件放到 <code>danmu.js</code> 同级的 <code>plugins/</code>（线上为 <code>static/customer/js/plugins/</code>），文件名必须与插件名一致，改完记得强刷缓存；</li>
-      <li>插件目录默认固定，确实要换只能在 <code>init()</code> 里传 <code>pluginsSite</code>（脚本地址不支持）。</li>
+      <li>自托管插件：在 <code>init()</code> 里传 <code>pluginsSite</code>，或直接在 <code>plugins</code> 里写完整 <code>http(s)://…/x.js</code> URL（<code>insertNode.js</code> 还支持在 script 地址传 <code>pluginsSite</code>）。</li>
     </ul>
+    <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeLog"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeLog">[网页插件] ┌─ 开始加载 2 个: panel, mynote
+[网页插件] │  ✓ panel  已就绪 (12ms)
+[网页插件] │  ✗ mynote  脚本已加载但未注册 (未调用 registerPlugin)
+[网页插件] └─ 加载完成: 1 成功 / 1 失败 | 耗时 45ms</pre></div>
+  </div>
+
+  <div class="card">
+    <h2>插件 API 一览</h2>
+    <table>
+      <tr><th>API / 钩子</th><th>说明</th></tr>
+      <tr><td><code>WebsitePusher.registerPlugin(name, run)</code></td><td>注册插件，脚本加载后执行 <code>run(settings)</code>，每个插件文件调用一次。</td></tr>
+      <tr><td><code>settings</code></td><td>所有插件共用的初始化参数：<code>channelCode</code>、<code>plugins</code>、<code>pluginsSite</code>、<code>appName</code> 等。</td></tr>
+      <tr><td><code>settings.newMsgCallback(message)</code></td><td>在 <code>msg*</code> 插件里设置，接收完整消息对象。</td></tr>
+      <tr><td><code>settings.danMuMessageCallback(message)</code></td><td>轻量消息闸门；返回 <code>true</code> 表示已处理，不再渲染成弹幕。</td></tr>
+      <tr><td><code>WebsitePusher.pushTrigger(head, body)</code></td><td>上报事件到通道，可在通道「推送记录」里核对。</td></tr>
+      <tr><td><code>pushNewMsg</code> 事件</td><td>DOM 事件，完整消息在 <code>event.detail</code>，可替代 <code>newMsgCallback</code>。</td></tr>
+      <tr><td><code>window.sendMsg(text)</code></td><td>H5 挂件页（kf-pc.js）提供，发送聊天消息；仅在官方 <code>msg-dialog</code> 插件启用时可调用。注意上面的防循环措施。</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>官方插件清单</h2>
+    <p>挂件自带的现成插件，在 <code>plugins</code> 参数里按名字加载即可；访问<a href="https://push.phprm.com/clipper.html" target="_blank" rel="noopener">书签挂件页</a>把官方插件，将书签拖到浏览器地址栏立即体验。</p>
+    <table>
+      <tr><th>插件</th><th>说明</th></tr>
+      <tr><td><span class="tag">panel</span></td><td>右上角面板：通道码、登录账户、增加通道、弹幕设置，以及打开/关闭面板的 API。</td></tr>
+      <tr><td><span class="tag">stat</span></td><td>访问统计：加载上报 <code>visit</code>，点击上报 <code>click</code>。</td></tr>
+      <tr><td><span class="tag">ad</span></td><td>右下角图片广告位，可关闭、可按时长自动消失。建议配 <code>danMu=0</code>。</td></tr>
+      <tr><td><span class="tag">axios-report</span></td><td>axios 接口异常上报（<code>head=axios</code>）。建议配 <code>danMu=0&amp;hideDialog=1&amp;hideIcon=1</code>。</td></tr>
+      <tr><td><span class="tag">vue-report</span></td><td>Vue 异常与告警上报（<code>head=vue</code>），参数同上。</td></tr>
+      <tr><td><span class="tag">msg-sms-code</span></td><td>识别消息里的短信验证码并调用 <code>sendMsg(code)</code>；<code>msg</code> 前缀 → 订阅 <code>new_msg</code> 完整消息，与 <code>msg-dialog</code> 二选一（都写 <code>newMsgCallback</code>）。</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>常见问题</h2>
+    <table>
+      <tr><th>问题</th><th>解答</th></tr>
+      <tr><td>怎么确认插件有没有加载成功？</td><td>控制台按 <code>[网页插件]</code> 过滤，<code>✓</code> 全部成功，<code>✗</code> 给出具体原因（未注册 / run() 抛错）。</td></tr>
+      <tr><td>插件没加载</td><td>检查名字拼写与大小写、文件是否在 <code>pluginsSite/名字.js</code>、脚本加载完时是否调用了 <code>registerPlugin</code>。</td></tr>
+      <tr><td>插件收不到消息正文</td><td>只有 <code>msg*</code> 插件订阅 <code>new_msg</code>（完整消息）；其他名字收的是轻量的 <code>new_dm</code>，没有正文。</td></tr>
+      <tr><td>消息一直重复发送</td><td>插件每收到消息就调用 <code>sendMsg()</code> 会形成回环。按消息 ID 和发送的内容双重去重即可。</td></tr>
+      <tr><td>两个插件都要处理完整消息怎么办</td><td>它们共用一个 <code>settings.newMsgCallback</code>，后设置的会覆盖前一个。要各自独立处理，改用 <code>pushNewMsg</code> DOM 事件。</td></tr>
+    </table>
   </div>
 
   <div class="card">
@@ -184,6 +264,11 @@ settings.danMuMessageCallback = function (message) {
     <p>不想写前端、只想推一条消息时，直接请求下面这个地址即可（返回 <code>code=0</code> 表示成功）。参数说明见 <a href="ad.html" target="_blank" rel="noopener">ad.html</a>。</p>
     <div class="cb"><div class="cb-head"><span class="cb-dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><button type="button" class="cb-btn" data-copy="codeGet"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>复制</span></button></div><pre class="cb-body" id="codeGet">https://www.phprm.com/services/push/trigger/你的通道码?head=广告&amp;avatar=https://ws.phprm.com/static/demo/images/ad-demo.svg&amp;url=https://push.phprm.com/&amp;hold=30</pre></div>
     <p class="hint">复制此链接到浏览器地址栏粘贴访问同样可以触发推送。</p>
+  </div>
+
+  <div class="card">
+    <h2>最新在线手册</h2>
+    <p>本文档内容以官网最新版为准，如需查阅更新后的参数、API 与示例，请访问：<a href="https://push.phprm.com/plugins.html" target="_blank" rel="noopener noreferrer">https://push.phprm.com/plugins.html</a></p>
   </div>
 </div>
 
