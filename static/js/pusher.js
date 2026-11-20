@@ -34,9 +34,10 @@
  *   行为开关：hideDialog(0/1) / danMu(0/1; danMu=0 不渲染弹幕与弹幕图标,
  *             但加载了 ad 插件时仍建立消息流、照常展示广告位)
  *   插件/宿主上报入口（插件上报统一走这里，避免各插件各自拼请求）：
- *     WebsitePusher.pushTrigger(head, body, callback)  触发一条推送：
- *              POST {triggerUrl}{channelCode}, 请求体为 JSON: {head, url, body}；
+ *     WebsitePusher.pushTrigger(head, body, url, avatar, callback)  触发一条推送：
+ *              POST {triggerUrl}{channelCode}, 请求体为 JSON: {head, url, avatar, body}；
  *              正文(body)上限 5 万字符(超出截断), 不占 URL 长度, 也不会被网关按 URL 长度拒绝；
+ *              url 传空则回退当前网址(window.location.href); avatar 传空则不带该字段;
  *              通道码未认领时先等它就绪(最多10秒)，等不到则放弃并回调 false
  *     WebsitePusher.waitChannelCode(onReady, onTimeout)  等通道码就绪(200ms 轮询, 默认10秒超时)
  *   弹幕运行时控制（供外部开发者动态开关弹幕）：
@@ -1900,27 +1901,29 @@ try {
             },
             /**
              * 触发一条推送（插件/宿主上报共用）：
-             * POST settings.triggerUrl + channelCode，请求体为 JSON：{ head, url: 当前网址, body: 可选内容 }
+             * POST settings.triggerUrl + channelCode，请求体为 JSON：{ head, url, avatar, body }
              * 用 POST + application/json 而不是 GET 拼查询串：正文可以带到 5 万字符，
              * 也不受浏览器/网关的 URL 长度限制（服务端已放开这条接口的 CORS 预检）
              * 通道码未认领时先等它就绪(最多10秒)，等不到则放弃并回调 false
              * @param {String} head 记录类型，如 "visit" / "click" / "axios" / "vue"
              * @param {String} [body] 内容，超过 5 万字符会被截断
+             * @param {String} [url] 访问的网址，传空则回退 window.location.href
+             * @param {String} [avatar] 头像地址，传空则不写入该字段
              * @param {Function} [callback] 完成回调，入参为是否成功
              */
-            pushTrigger: function (head, body, callback) {
+            pushTrigger: function (head, body, url, avatar, callback) {
                 var _this = this;
                 // 服务端接收 application/json 的正文上限，超出会整条请求被丢弃，这里先截断兜底
                 var MAX_BODY_LENGTH = 50000;
                 if (!head) {
-                    if (callback) callback(false);
+                    if (typeof callback === "function") callback(false);
                     return;
                 }
                 var send = function () {
                     var s = _this.settings;
                     var base = s.triggerUrl || "";
                     if (!s.channelCode || !base) {
-                        if (callback) callback(false);
+                        if (typeof callback === "function") callback(false);
                         return;
                     }
                     if (base.charAt(base.length - 1) != "/") {
@@ -1928,13 +1931,16 @@ try {
                     }
                     var payload = {
                         head: head,
-                        url: window.location.href
+                        url: (url != null && url !== "") ? String(url) : window.location.href
                     };
                     if (body != null && body !== "") {
                         var text = String(body);
                         payload.body = text.length > MAX_BODY_LENGTH
                             ? text.substring(0, MAX_BODY_LENGTH)
                             : text;
+                    }
+                    if (avatar != null && avatar !== "") {
+                        payload.avatar = String(avatar);
                     }
                     // 触发接口不鉴权: 普通跨域 POST(不携带凭据), 不带 withCredentials,
                     // 避免要求服务端额外放开凭据跨域(与旧的 GET 行为保持一致)
@@ -1947,15 +1953,15 @@ try {
                         processData: false,
                         data: JSON.stringify(payload),
                         success: function () {
-                            if (callback) callback(true);
+                            if (typeof callback === "function") callback(true);
                         },
                         error: function () {
-                            if (callback) callback(false);
+                            if (typeof callback === "function") callback(false);
                         }
                     });
                 };
                 _this.waitChannelCode(send, function () {
-                    if (callback) callback(false);
+                    if (typeof callback === "function") callback(false);
                 });
             },
             /**

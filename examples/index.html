@@ -198,7 +198,7 @@ settings.danMuMessageCallback = function (message) {
     <ul>
       <li>插件里的异常会被组件捕获，不影响弹幕/统计主流程，调试看浏览器控制台；</li>
       <li>按 <code>[网页插件]</code> 过滤控制台，可看到每个插件的加载日志：<code>✓</code> 表示脚本加载 + <code>registerPlugin</code> + <code>run()</code> 全部成功，<code>✗</code> 会给出具体原因（未注册 / run() 抛错）；</li>
-      <li>上报统一用 <code>WebsitePusher.pushTrigger(head, body)</code>，写完可在通道后台「推送记录」里确认；</li>
+      <li>上报统一用 <code>WebsitePusher.pushTrigger(head, body, url, avatar, callback)</code>，url/avatar 可传空（url 传空用当前网址，avatar 传空不带头像），写完可在通道后台「推送记录」里确认；</li>
       <li>使用严格 ES5（不用箭头函数、<code>let</code>/<code>const</code>），代码用 IIFE 包起来并判断 <code>WebsitePusher</code> 是否已加载，兼容更多浏览器；</li>
       <li>发布：如果使用你自己部署的 <code>danmu.js</code>，把文件放到 <code>danmu.js</code> 同级的 <code>plugins/</code>（线上为 <code>static/customer/js/plugins/</code>），文件名必须与插件名一致，改完记得强刷缓存；</li>
       <li>自托管插件：在 <code>init()</code> 里传 <code>pluginsSite</code>，或直接在 <code>plugins</code> 里写完整 <code>http(s)://…/x.js</code> URL（<code>insertNode.js</code> 还支持在 script 地址传 <code>pluginsSite</code>）。</li>
@@ -217,7 +217,7 @@ settings.danMuMessageCallback = function (message) {
       <tr><td><code>settings</code></td><td>所有插件共用的初始化参数：<code>channelCode</code>、<code>plugins</code>、<code>pluginsSite</code>、<code>appName</code> 等。</td></tr>
       <tr><td><code>settings.newMsgCallback(message)</code></td><td>在 <code>msg*</code> 插件里设置，接收完整消息对象。</td></tr>
       <tr><td><code>settings.danMuMessageCallback(message)</code></td><td>轻量消息闸门；返回 <code>true</code> 表示已处理，不再渲染成弹幕。</td></tr>
-      <tr><td><code>WebsitePusher.pushTrigger(head, body)</code></td><td>上报事件到通道，可在通道「推送记录」里核对。</td></tr>
+      <tr><td><code>WebsitePusher.pushTrigger(head, body, url, avatar, callback)</code></td><td>上报事件到通道，可在通道「推送记录」里核对。url=访问网址(传空回退当前网址)，avatar=头像(传空不写入)，callback=完成回调(入参为是否成功)。</td></tr>
       <tr><td><code>pushNewMsg</code> 事件</td><td>DOM 事件，完整消息在 <code>event.detail</code>，可替代 <code>newMsgCallback</code>。</td></tr>
       <tr><td><code>window.sendMsg(text)</code></td><td>H5 挂件页（kf-pc.js）提供，发送聊天消息；仅在官方 <code>msg-dialog</code> 插件启用时可调用。注意上面的防循环措施。</td></tr>
     </table>

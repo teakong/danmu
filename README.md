@@ -206,6 +206,7 @@ http://localhost/danmu/server.html      # 后端过滤演示
 | resumeDanMu() | 恢复弹幕（重启滚动，刷新暂存队列） |
 | clearDanMu() | 清屏（移除所有弹幕元素 + 清空暂停队列，不影响连接） |
 | setDanMuArea(ratio) | 设置显示区域比例（0.1~1，如 0.5=上半屏） |
+| pushTrigger(head, body, url, avatar, callback) | 上报一条推送（插件/宿主统一入口），url=访问网址(传空回退当前网址)，avatar=头像(传空不写入)，callback=完成回调(入参为是否成功) |
 
 ### settings 配置项
 

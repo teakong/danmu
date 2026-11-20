@@ -181,7 +181,7 @@
         seen[fp] = true;
         // 先占配额再发请求：避免发请求失败/等不到通道码时异常量放大轮询
         sent++;
-        WebsitePusher.pushTrigger("axios", body, function (ok) {
+        WebsitePusher.pushTrigger("axios", body, "", "", function (ok) {
             if (!ok) {
                 log("axios-report 插件：上报失败(通道码未就绪或网络异常)，本次丢弃");
             }

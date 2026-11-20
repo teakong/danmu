@@ -179,11 +179,11 @@ th{color:#666;font-weight:600;white-space:nowrap;}
         if (!P || !P.pushTrigger || P.__demoPatched) return;
         P.__demoPatched = true;
         var origin = P.pushTrigger;
-        P.pushTrigger = function (head, body, callback) {
+        P.pushTrigger = function (head, body, url, avatar, callback) {
             var text = body == null ? "" : String(body);
             if (text.length > 160) text = text.substring(0, 160) + "…";
             logLine("pushTrigger head=" + head + (text ? " body=" + text : ""));
-            return origin.call(this, head, body, function (ok) {
+            return origin.call(this, head, body, url, avatar, function (ok) {
                 logLine("  ↳ " + head + " " + (ok ? "上报成功" : "未上报(通道未就绪或被网关拒绝)"), ok ? "ok" : "warn");
                 if (typeof callback === "function") callback(ok);
             });

@@ -137,7 +137,7 @@ function extractSmsCode(text) {
     </div>
 </div>
 
-<script src="https://ws.phprm.com/static/customer/js/danmu.js?appName=examples&channelCode=3db15cb9ff360873027019296797c796&danMu=1&hideIcon=1&hideDialog=1&plugins=msg-sms-code"></script>
+<script src="https://ws.phprm.com/static/customer/js/insertNode.js?appName=examples&channelCode=3db15cb9ff360873027019296797c796&danMu=1&hideIcon=1&hideDialog=1&pluginsSite=https://push.phprm.com/static/js/plugins/&plugins=msg-sms-code-autocopy"></script>
 <script>
 // 插件识别到验证码后会调用全局 sendMsg(code)，这里直接渲染到本地弹幕组件
 // 不要用 pushTrigger：msg 模式只订阅 new_msg，不走 new_dm；且服务端广播 new_msg 时会删掉 head，
@@ -216,6 +216,26 @@ function sendMsg(code) {
         }
     }
 
+    // 后端对同一个 url 参数的触发 1 分钟内去重：同页连发时后面几条会被静默丢弃。
+    // url 带上精确到秒的 pushTime 后每次都是新消息；网址本身已带 pushTime 时替换旧值，避免追加成两个
+    function pageUrlWithPushTime() {
+        var url = window.location.href;
+        var d = new Date();
+        var pad = function (num) {
+            return (num < 10 ? "0" : "") + num;
+        };
+        var time = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+        var hashAt = url.indexOf("#");
+        var head = hashAt === -1 ? url : url.slice(0, hashAt);
+        var tail = hashAt === -1 ? "" : url.slice(hashAt);
+        if (/[?&]pushTime=[^&#]*/i.test(head)) {
+            head = head.replace(/([?&])pushTime=[^&#]*/gi, "$1pushTime=" + time);
+        } else {
+            head += (head.indexOf("?") === -1 ? "?" : "&") + "pushTime=" + time;
+        }
+        return head + tail;
+    }
+
     function bind(id, handler) {
         var el = document.getElementById(id);
         if (!el) return;
@@ -242,7 +262,7 @@ function sendMsg(code) {
         if (code) {
             result.innerHTML = '识别结果：<b>' + code + '</b>';
             logLine('提取验证码 "' + code + '" ← ' + (text.length > 60 ? text.substring(0, 60) + "…" : text), "ok");
-            WebsitePusher.pushTrigger("短信验证码测试", text);
+            WebsitePusher.pushTrigger("短信验证码测试", text, pageUrlWithPushTime());
             logLine("已模拟发送验证码到弹幕");
         } else {
             result.textContent = "未识别到验证码（正文需含 4–8 位数字）";
