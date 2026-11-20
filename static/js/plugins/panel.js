@@ -1293,7 +1293,9 @@
                     channelCode: $btn.data("code"),
                     token: $btn.data("token"),
                     shareFlag: $btn.data("share"),
-                    wsUrl: api.channelWsUrl || api.settings.wsUrl
+                    wsUrl: api.channelWsUrl || api.settings.wsUrl,
+                    // 透传当前挂件的插件列表到聊天页(pc.html), 由 pc.html 读取后 init
+                    plugins: api.settings.plugins || ""
                     };
                 api.initPusherKF(params);
             });

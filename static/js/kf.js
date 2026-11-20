@@ -66,6 +66,12 @@ KF.prototype = {
                 url += "&wsUrl=" + encodeURIComponent(base.wsUrl);
             }
         }
+        // 透传插件列表到聊天页(pc.html/mobile.html): 放在分支之外,
+        // 这样 getPusherPcUrl/getPusherMobileUrl 分支和回退拼接分支都能带上;
+        // indexOf 判断避免重复追加
+        if(base.plugins && url.indexOf("plugins=") < 0){
+            url += (url.indexOf("?") > -1 ? "&" : "?") + "plugins=" + encodeURIComponent(base.plugins.replace("panel", ""));
+        }
         if(mobile){
             window.location.href = url;
         }else{
@@ -183,7 +189,19 @@ function compileMarkDown(str){
 }
 
 // 转义聊天内容中的特殊字符
+// 剥离线报推送 body 末尾的隐藏分类标记（空文本 markdown 链接），
+// 该标记仅供接收端落库识别分类，前端展示时必须去掉。
+// 兼容双引号/单引号及其 HTML 实体化形态（&quot; / &apos; / &#34; / &#39;），
+// 否则双引号被实体化后 markdown 语法失效，[]() 会原样露出来。
+function stripHiddenCatMarker(content) {
+    if (typeof content !== 'string' || content.indexOf('cat:') === -1) {
+        return content;
+    }
+    return content.replace(/\[\]\([^\r\n]*?\s(?:"|&quot;|&#34;|'|&apos;|&#39;)cat:[^\r\n]*?(?:"|&quot;|&#34;|'|&apos;|&#39;)\)\s*/gi, '');
+}
+
 function replaceContent(content) {
+    content = stripHiddenCatMarker(content);
     // 判断是否含有a标签
     var html = compileMarkDown(content);
     var pattern = /(<\/?a.*?>)|(<\/?span.*?>)/;
