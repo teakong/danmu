@@ -20,7 +20,7 @@
  *   6) messagePushId 去重。
  *
  * 说明：
- *   - 复用 pc.html 已加载的 kf.min.js / kf-pc.min.js 全局函数与变量
+ *   - 复用 pc.html 已加载的 kf.js 全局函数与变量
  *     (showNewMessage / makeChatLog / showBigPic / wordBottom / config / kf_id / kf_name)
  *   - 严格 ES5（不用箭头函数/let-const），异常不影响 pusher 主流程
  */
