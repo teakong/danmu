@@ -14,6 +14,7 @@
  *   4) 面板初始值取 settings.danMuSetting（默认 50 / 100 / 20 / 18），用户改过的值由组件自己持久化。
  *
  * 说明：
+ *   - 仅在 settings.channelCode 存在时才渲染左下角齿轮；通道为空时既不创建也移除已有面板；
  *   - 图标（齿轮）内联在插件里，不额外请求图片，CDN 只同步 js 目录也不会出现空图标；
  *   - 严格 ES5、不依赖 jQuery，异常只打日志，不影响弹幕主流程；
  *   - 组件自身 UI 的点击不会被 stat 插件计入点击统计（.dm-float-wrap 已在 stat 的忽略列表里）。
@@ -454,6 +455,17 @@
     }
 
     WebsitePusher.registerPlugin(NAME, function (settings) {
+        // 没有 channelCode 时不展示左下角设置图标: 面板里的弹幕开关/滑块都依赖通道,
+        // 无通道时留一个齿轮只会让人误以为能配置
+        if (!settings || !settings.channelCode) {
+            // 之前带 channelCode 建过面板、后续又用空通道重新 init 时, 把旧面板一起清掉
+            if (wrap && wrap.parentNode) {
+                wrap.parentNode.removeChild(wrap);
+            }
+            wrap = null;
+            refs = null;
+            return;
+        }
         // 同一页面重复 init 不重复建面板；destroy() 移除后重新 init 时重建
         if (isAttached(wrap)) {
             return;
